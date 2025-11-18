@@ -2,7 +2,7 @@ package graphics3d;
 
 import org.lwjgl.opengl.GL30;
 
-import java.awt.Color;
+
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.*;
@@ -17,8 +17,8 @@ public class Mesh {
     private int vaoId;
     private List<Integer> vboIdList;
 
-    public Mesh(float[] positions, float[] colors, int[] indices) {
-        this.numVertices = indices.length;
+    public Mesh(float[] positions, float[] textCoords, int[] indices) {
+        numVertices = indices.length;
         vboIdList = new ArrayList<>();
 
         vaoId = glGenVertexArrays();
@@ -33,16 +33,16 @@ public class Mesh {
         glBufferData(GL_ARRAY_BUFFER, positionsBuffer, GL_STATIC_DRAW);
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
-        
-        // Color VBO
+
+        // Texture coordinates VBO
         vboId = glGenBuffers();
         vboIdList.add(vboId);
-        FloatBuffer colorsBuffer = MemoryUtil.memCallocFloat(colors.length);
-        colorsBuffer.put(0, colors);
+        FloatBuffer textCoordsBuffer = MemoryUtil.memCallocFloat(textCoords.length);
+        textCoordsBuffer.put(0, textCoords);
         glBindBuffer(GL_ARRAY_BUFFER, vboId);
-        glBufferData(GL_ARRAY_BUFFER, colorsBuffer, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, textCoordsBuffer, GL_STATIC_DRAW);
         glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 3, GL_FLOAT, false, 0, 0);
+        glVertexAttribPointer(1, 2, GL_FLOAT, false, 0, 0);
 
         // Index VBO
         vboId = glGenBuffers();
@@ -56,6 +56,8 @@ public class Mesh {
         glBindVertexArray(0);
 
         MemoryUtil.memFree(positionsBuffer);
+        MemoryUtil.memFree(textCoordsBuffer);
+        MemoryUtil.memFree(indicesBuffer);
     }
 
     public void cleanup() {
@@ -72,52 +74,125 @@ public class Mesh {
     }
     
     // Mesh generation
-    static Mesh generateStar(int points, float top, float bot, float z) {
-		int length = (points*2)*3;
-		double angle = (2*Math.PI)/points;
-		float[] positions = new float[length+3];
-		float[] colors = new float[length+3];
-		int[] indices = new int[points*3*2];
-		// Center point
-		positions[length] = 0.f;
-		positions[length+1] = 0.f;
-		positions[length+2] = z;
-		colors[length] = 0.5f;
-		colors[length+1] = 0.5f;
-		colors[length+2] = 0.5f;
-		for (int i = 0; i < points; i++) {
-			// Generate points
-			double pointx = Math.sin(angle*i)*top;
-			double pointy = Math.cos(angle*i)*top;
-			double rightx = Math.sin(angle*i+angle/2)*bot;
-			double righty = Math.cos(angle*i+angle/2)*bot;
-			positions[i*6+0] = (float) pointx;
-			positions[i*6+1] = (float) pointy;
-			positions[i*6+2] = z;
-			positions[i*6+3] = (float) rightx;
-			positions[i*6+4] = (float) righty;
-			positions[i*6+5] = z;
-			
-			// Generate colors
-			Color pointcolor = Color.getHSBColor((float) ((angle*i)/(2*Math.PI)), 1.f, 1.f);
-			Color rightcolor = Color.getHSBColor((float) ((angle*i+angle/2)/(2*Math.PI)), 1.f, 1.f);
-			colors[i*6+0] = pointcolor.getRed()/255.f;
-			colors[i*6+1] = pointcolor.getGreen()/255.f;
-			colors[i*6+2] = pointcolor.getBlue()/255.f;
-			colors[i*6+3] = rightcolor.getRed()/255.f;
-			colors[i*6+4] = rightcolor.getGreen()/255.f;
-			colors[i*6+5] = rightcolor.getBlue()/255.f;
-			
-			// Generate Indices
-			indices[i*3+0] = i*2;
-			indices[i*3+1] = i*2+1;
-			indices[i*3+2] = (i == 0) ? points*2-1 : i*2-1;
-			
-			// Inwards facing triangles
-			indices[i*3+0+points*3] = points*2;
-			indices[i*3+1+points*3] = i*2+1;
-			indices[i*3+2+points*3] = (i == 0) ? points*2-1 : i*2-1;
-		}
-		return new Mesh(positions, colors, indices);
+    static Mesh generateBox(float width, float height, float length) {
+    	float x = width/2, y = height/2, z = length/2;
+    	float[] positions = new float[]{
+            // VO
+            -x, y, z,
+            // V1
+            -x, -y, z,
+            // V2
+            x, -y, z,
+            // V3
+            x, y, z,
+            // V4
+            -x, y, -z,
+            // V5
+            x, y, -z,
+            // V6
+            -x, -y, -z,
+            // V7
+            x, -y, -z,
+        };
+
+        float[] colors = new float[]{
+            0.5f, 0.0f, 0.0f,
+            0.0f, 0.5f, 0.0f,
+            0.0f, 0.0f, 0.5f,
+            0.0f, 0.5f, 0.5f,
+            0.5f, 0.0f, 0.0f,
+            0.0f, 0.5f, 0.0f,
+            0.0f, 0.0f, 0.5f,
+            0.0f, 0.5f, 0.5f,
+        };
+        int[] indices = new int[]{
+            // Front face
+            0, 1, 3, 3, 1, 2,
+            // Top Face
+            4, 0, 3, 5, 4, 3,
+            // Right face
+            3, 2, 7, 5, 3, 7,
+            // Left face
+            6, 1, 0, 6, 0, 4,
+            // Bottom face
+            2, 1, 6, 2, 6, 7,
+            // Back face
+            7, 6, 4, 7, 4, 5,
+        };
+    	
+    	return new Mesh(positions, colors, indices);
+    }
+    
+    static Mesh generateStar(float width, float height, float length, float spacing) {
+    	float x = width/2, y = height/2, z = length/2;
+    	float u = x*spacing, v = y*spacing, w = z*spacing;
+    	float[] positions = new float[] {
+    		// Points
+    		x, 0, 0,	// Right
+    		0, y, 0,	// Top
+    		-x, 0, 0,	// Left
+    		0, -y, 0,	// Bottom
+    		0, 0, z,	// Front
+    		0, 0, -z,	// Back
+    		// 6: Front
+    		u, v, w,	// Top-Right
+    		-u, v, w,	// Top-Left
+    		-u, -v, w,	// Bottom-Left
+    		u, -v, w,	// Bottom-Right,
+    		// 10: Back
+    		u, v, -w,	// Top-Right
+    		-u, v, -w,	// Top-Left
+    		-u, -v, -w,	// Bottom-Left
+    		u, -v, -w,	// Bottom-Right,
+    	};
+    	float[] colors = new float[] {
+            0.5f, 0.0f, 0.0f,
+            0.0f, 0.5f, 0.0f,
+            0.0f, 0.0f, 0.5f,
+            0.0f, 0.5f, 0.5f,
+            0.5f, 0.0f, 0.0f,
+            0.0f, 0.5f, 0.0f,
+            0.0f, 0.0f, 0.5f,
+            0.0f, 0.5f, 0.5f,
+            0.5f, 0.0f, 0.0f,
+            0.0f, 0.5f, 0.0f,
+            0.0f, 0.0f, 0.5f,
+            0.0f, 0.5f, 0.5f,
+            0.0f, 0.0f, 0.5f,
+            0.0f, 0.5f, 0.5f,
+    	};
+    	int[] indices = new int[] {
+    		// Right
+    		0, 9, 13,
+    		1, 6, 10,
+    		2, 7, 11,
+    		3, 8, 12,
+    		4, 6, 9,
+    		5, 10, 13,
+    		// Left
+    		0, 6, 10,
+    		1, 7, 11,
+    		2, 8, 12,
+    		3, 9, 13,
+    		4, 7, 8,
+    		5, 11, 12,
+    		// Front
+    		0, 6, 9,
+    		1, 6, 7,
+    		2, 7, 8,
+    		3, 8, 9,
+    		4, 6, 7,
+    		5, 10, 11,
+    		// Back
+    		0, 10, 13,
+    		1, 10, 11,
+    		2, 11, 12,
+    		3, 12, 13,
+    		4, 8, 9,
+    		5, 12, 13,
+    		
+    	};
+    	
+    	return new Mesh(positions, colors, indices);
     }
 }

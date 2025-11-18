@@ -27,7 +27,7 @@ public class Window {
 	public static class WindowOptions {
 		public boolean compat = false;
 		public int fps = 60;
-		public int ups = 30;
+		public int ups = 120;
 		public int width = 900;
 		public int height = 720;
     }

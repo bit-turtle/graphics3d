@@ -22,6 +22,7 @@ public class SceneRender {
         uniforms = new UniformMap(shader.getId());
         uniforms.createUniform("projectionMatrix");
         uniforms.createUniform("modelMatrix");
+        uniforms.createUniform("txtSampler");
 	}
 	
 	public void cleanup() {
@@ -33,16 +34,26 @@ public class SceneRender {
 
         uniforms.setUniform("projectionMatrix", scene.getProjection().getProjMatrix());
 
+        uniforms.setUniform("txtSampler", 0);
+
         Collection<Model> models = scene.getModelMap().values();
+        TextureCache textureCache = scene.getTextureCache();
         for (Model model : models) {
-            model.getMeshList().stream().forEach(mesh -> {
-                glBindVertexArray(mesh.getVaoId());
-                List<Entity> entities = model.getEntitiesList();
-                for (Entity entity : entities) {
-                    uniforms.setUniform("modelMatrix", entity.getModelMatrix());
-                    glDrawElements(GL_TRIANGLES, mesh.getNumVertices(), GL_UNSIGNED_INT, 0);
+            List<Entity> entities = model.getEntitiesList();
+
+            for (Material material : model.getMaterialList()) {
+                Texture texture = textureCache.getTexture(material.getTexturePath());
+                glActiveTexture(GL_TEXTURE0);
+                texture.bind();
+
+                for (Mesh mesh : material.getMeshList()) {
+                    glBindVertexArray(mesh.getVaoId());
+                    for (Entity entity : entities) {
+                        uniforms.setUniform("modelMatrix", entity.getModelMatrix());
+                        glDrawElements(GL_TRIANGLES, mesh.getNumVertices(), GL_UNSIGNED_INT, 0);
+                    }
                 }
-            });
+            }
         }
 
         glBindVertexArray(0);

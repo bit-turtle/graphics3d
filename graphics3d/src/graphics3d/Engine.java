@@ -14,7 +14,7 @@ public class Engine {
 	
 	public Engine(String title, Window.WindowOptions opts, AppInterface logic) {
 		Callable<Void> resizeCallback = () -> { resize(); return null; };
-		window = new Window(title, opts, resizeCallback );
+		window = new Window(title, opts, resizeCallback);
 		this.logic = logic;
 		render = new Render();
 		scene = new Scene(window.getWidth(), window.getHeight());
@@ -50,12 +50,10 @@ public class Engine {
 			long time = now - initTime;
 			deltaud += time/timeU;
 			deltafps += time/timeR;
-			
-			if (targetFps <= 0 || deltafps >= 1)
-				logic.input(window, scene, time);
-			
+						
 			if (deltaud >= 1) {
 				long timediff = now - updateTime;
+				logic.input(window, scene, timediff);
 				logic.update(window, scene, timediff);
 				updateTime = now;
 				deltaud--;

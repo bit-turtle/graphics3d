@@ -25,6 +25,10 @@ public class UniformMap {
         uniforms.put(name, uniformLocation);
     }
     
+    public void setUniform(String uniformName, int value) {
+        glUniform1i(uniforms.get(uniformName).intValue(), value);
+    }
+    
     public void setUniform(String uniformName, Matrix4f value) {
         try (MemoryStack stack = MemoryStack.stackPush()) {
             Integer location = uniforms.get(uniformName);
