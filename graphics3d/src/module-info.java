@@ -10,4 +10,6 @@ module graphics3d {
 	requires java.desktop;
 	requires org.joml;
 	requires org.lwjgl.stb;
+	requires org.lwjgl.assimp;
+	requires imgui.binding;
 }

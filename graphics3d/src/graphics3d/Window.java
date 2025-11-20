@@ -24,9 +24,11 @@ public class Window {
 	
 	private Callable<Void> resize;
 	
+	private MouseInput mouse;
+	
 	public static class WindowOptions {
 		public boolean compat = false;
-		public int fps = 60;
+		public int fps = 0;
 		public int ups = 120;
 		public int width = 900;
 		public int height = 720;
@@ -91,10 +93,11 @@ public class Window {
 		
 		glfwSetKeyCallback(handle,
 			(_, key, _, action, _) -> {
-				if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE)
-					glfwSetWindowShouldClose(handle, true);
+				keyCallback(key, action);
 			}
 		);
+		
+		mouse = new MouseInput(handle);
 		
 		// Prepare Window
 		
@@ -120,6 +123,11 @@ public class Window {
 		height = fbheight[0];
 	}
 
+	public void keyCallback(int key, int action) {
+		if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE)
+			glfwSetWindowShouldClose(handle, true);
+	}
+	
 	public void cleanup() {
 		glfwFreeCallbacks(handle);
 		glfwDestroyWindow(handle);
@@ -139,6 +147,10 @@ public class Window {
 	
 	public long getHandle() {
 		return handle;
+	}
+	
+	public MouseInput getMouseInput() {
+		return mouse;
 	}
 	
 	public boolean isKeyPressed(int code) {

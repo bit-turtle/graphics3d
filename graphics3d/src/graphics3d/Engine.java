@@ -53,6 +53,7 @@ public class Engine {
 						
 			if (deltaud >= 1) {
 				long timediff = now - updateTime;
+				window.getMouseInput().input();
 				logic.input(window, scene, timediff);
 				logic.update(window, scene, timediff);
 				updateTime = now;

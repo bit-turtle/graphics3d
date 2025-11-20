@@ -23,6 +23,8 @@ public class SceneRender {
         uniforms.createUniform("projectionMatrix");
         uniforms.createUniform("modelMatrix");
         uniforms.createUniform("txtSampler");
+        uniforms.createUniform("viewMatrix");
+        uniforms.createUniform("material.diffuse");
 	}
 	
 	public void cleanup() {
@@ -33,6 +35,7 @@ public class SceneRender {
         shader.bind();
 
         uniforms.setUniform("projectionMatrix", scene.getProjection().getProjMatrix());
+        uniforms.setUniform("viewMatrix", scene.getCamera().getViewMatrix());
 
         uniforms.setUniform("txtSampler", 0);
 
@@ -50,6 +53,7 @@ public class SceneRender {
                     glBindVertexArray(mesh.getVaoId());
                     for (Entity entity : entities) {
                         uniforms.setUniform("modelMatrix", entity.getModelMatrix());
+                        uniforms.setUniform("material.diffuse", material.getDiffuseColor());
                         glDrawElements(GL_TRIANGLES, mesh.getNumVertices(), GL_UNSIGNED_INT, 0);
                     }
                 }
