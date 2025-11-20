@@ -16,7 +16,7 @@ public class Engine {
 		Callable<Void> resizeCallback = () -> { resize(); return null; };
 		window = new Window(title, opts, resizeCallback);
 		this.logic = logic;
-		render = new Render();
+		render = new Render(window);
 		scene = new Scene(window.getWidth(), window.getHeight());
 		targetFps = opts.fps;
 		targetUps = opts.ups;
@@ -43,6 +43,7 @@ public class Engine {
 		float deltafps = 0;
 		
 		long updateTime = initTime;
+		GuiInterface gui = scene.getGui();
 		while (running && ! window.windowShouldClose()) {
 			window.pollEvents();
 			
@@ -54,7 +55,9 @@ public class Engine {
 			if (deltaud >= 1) {
 				long timediff = now - updateTime;
 				window.getMouseInput().input();
-				logic.input(window, scene, timediff);
+				window.getMouseInput().input();
+                boolean inputConsumed = gui != null && gui.handleInput(scene, window);
+                logic.input(window, scene, now - initTime, inputConsumed);
 				logic.update(window, scene, timediff);
 				updateTime = now;
 				deltaud--;

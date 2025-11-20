@@ -4,7 +4,11 @@ import static org.lwjgl.glfw.GLFW.*;
 
 import org.joml.Vector2f;
 
-public class Graphics3D implements AppInterface {
+import imgui.ImGui;
+import imgui.ImGuiIO;
+import imgui.flag.ImGuiCond;
+
+public class Graphics3D implements AppInterface, GuiInterface {
 	
 	private static final float MOUSE_SENSITIVITY = 0.1f;
     private static final float MOVEMENT_SPEED = 0.005f;
@@ -19,6 +23,7 @@ public class Graphics3D implements AppInterface {
 	
 	@Override
 	public void init(Window window, Scene scene, Render render) {
+		scene.setGui(this);
 		Model cubeModel = ModelLoader.loadModel("cube-model", "resources/models/cottage/cottage.obj",
                 scene.getTextureCache());
         scene.addModel(cubeModel);
@@ -28,7 +33,9 @@ public class Graphics3D implements AppInterface {
 	}
 	
 	@Override
-	public void input(Window window, Scene scene, long deltatime) {
+	public void input(Window window, Scene scene, long deltatime, boolean consumed) {
+		if (consumed)
+			return;
 		float move = deltatime * MOVEMENT_SPEED;
         Camera camera = scene.getCamera();
         if (window.isKeyPressed(GLFW_KEY_W)) {
@@ -48,13 +55,32 @@ public class Graphics3D implements AppInterface {
         }
 
         MouseInput mouseInput = window.getMouseInput();
-        if (mouseInput.isRightButtonPressed()) {
-            Vector2f displVec = mouseInput.getDisplVec();
-            camera.addRotation(
-	    		(float) Math.toRadians(-displVec.x * MOUSE_SENSITIVITY),
-	            (float) Math.toRadians(-displVec.y * MOUSE_SENSITIVITY)
-            );
-        }
+        Vector2f displVec = mouseInput.getDisplVec();
+        camera.addRotation(
+    		(float) Math.toRadians(-displVec.x * MOUSE_SENSITIVITY),
+            (float) Math.toRadians(-displVec.y * MOUSE_SENSITIVITY)
+        );
+    }
+	
+	@Override
+    public void drawGui() {
+        ImGui.newFrame();
+        ImGui.setNextWindowPos(0, 0, ImGuiCond.Always);
+        ImGui.showDemoWindow();
+        ImGui.endFrame();
+        ImGui.render();
+    }
+
+    @Override
+    public boolean handleInput(Scene scene, Window window) {
+        ImGuiIO imGuiIO = ImGui.getIO();
+        MouseInput mouseInput = window.getMouseInput();
+        Vector2f mousePos = mouseInput.getCurrentPos();
+        imGuiIO.addMousePosEvent(mousePos.x, mousePos.y);
+        imGuiIO.addMouseButtonEvent(0, mouseInput.isLeftButtonPressed());
+        imGuiIO.addMouseButtonEvent(1, mouseInput.isRightButtonPressed());
+
+        return imGuiIO.getWantCaptureMouse() || imGuiIO.getWantCaptureKeyboard();
     }
 	
 	@Override
