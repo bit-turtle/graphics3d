@@ -20,7 +20,7 @@ public class Graphics3D implements AppInterface, GuiInterface {
 	
 	Entity cubeEntity;
 	float rotation;
-	
+		
 	@Override
 	public void init(Window window, Scene scene, Render render) {
 		scene.setGui(this);
@@ -30,6 +30,11 @@ public class Graphics3D implements AppInterface, GuiInterface {
         cubeEntity = new Entity("cube-entity", cubeModel.getId());
         cubeEntity.setPosition(0, 0, -2);
         scene.addEntity(cubeEntity);
+	}
+	
+	@Override
+	public void escape(Window window, Scene scene) {
+		window.getMouseInput().freeMouse();
 	}
 	
 	@Override
@@ -48,9 +53,9 @@ public class Graphics3D implements AppInterface, GuiInterface {
         } else if (window.isKeyPressed(GLFW_KEY_D)) {
             camera.moveRight(move);
         }
-        if (window.isKeyPressed(GLFW_KEY_UP)) {
+        if (window.isKeyPressed(GLFW_KEY_LEFT_SHIFT)) {
             camera.moveUp(move);
-        } else if (window.isKeyPressed(GLFW_KEY_DOWN)) {
+        } else if (window.isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {
             camera.moveDown(move);
         }
 
@@ -60,6 +65,9 @@ public class Graphics3D implements AppInterface, GuiInterface {
     		(float) Math.toRadians(-displVec.x * MOUSE_SENSITIVITY),
             (float) Math.toRadians(-displVec.y * MOUSE_SENSITIVITY)
         );
+        
+        if (mouseInput.isRightButtonPressed() && !consumed)
+        	window.getMouseInput().captureMouse();
     }
 	
 	@Override
@@ -79,6 +87,7 @@ public class Graphics3D implements AppInterface, GuiInterface {
         imGuiIO.addMousePosEvent(mousePos.x, mousePos.y);
         imGuiIO.addMouseButtonEvent(0, mouseInput.isLeftButtonPressed());
         imGuiIO.addMouseButtonEvent(1, mouseInput.isRightButtonPressed());
+        imGuiIO.addMouseWheelEvent(mouseInput.getScrollX(), mouseInput.getScrollY());
 
         return imGuiIO.getWantCaptureMouse() || imGuiIO.getWantCaptureKeyboard();
     }

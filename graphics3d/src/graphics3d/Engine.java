@@ -1,6 +1,7 @@
 package graphics3d;
 
-import java.util.concurrent.Callable;
+import static org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE;
+import static org.lwjgl.glfw.GLFW.GLFW_RELEASE;
 
 public class Engine {
 	
@@ -13,9 +14,8 @@ public class Engine {
 	private boolean running;
 	
 	public Engine(String title, Window.WindowOptions opts, AppInterface logic) {
-		Callable<Void> resizeCallback = () -> { resize(); return null; };
-		window = new Window(title, opts, resizeCallback);
 		this.logic = logic;
+		window = new Window(title, opts, this);
 		render = new Render(window);
 		scene = new Scene(window.getWidth(), window.getHeight());
 		targetFps = opts.fps;
@@ -31,8 +31,14 @@ public class Engine {
 		window.cleanup();
 	}
 	
-	private void resize() {
+	public void resize() {
 		scene.resize(window.getWidth(), window.getHeight());
+		render.resize(window.getWidth(), window.getHeight());
+	}
+	
+	public void keyCallback(int key, int action) {
+		if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE)
+			logic.escape(window, scene);
 	}
 	
 	public void run() {
@@ -55,8 +61,11 @@ public class Engine {
 			if (deltaud >= 1) {
 				long timediff = now - updateTime;
 				window.getMouseInput().input();
-				window.getMouseInput().input();
-                boolean inputConsumed = gui != null && gui.handleInput(scene, window);
+                boolean inputConsumed;
+                if (window.getMouseInput().captured())
+                	inputConsumed = false;
+                else
+                	inputConsumed = gui != null && gui.handleInput(scene, window);
                 logic.input(window, scene, now - initTime, inputConsumed);
 				logic.update(window, scene, timediff);
 				updateTime = now;

@@ -8,6 +8,8 @@ public interface AppInterface {
 	
 	void update(Window window, Scene scene, long deltatime);
 	
+	void escape(Window window, Scene scene);
+	
 	void cleanup();
 	
 }

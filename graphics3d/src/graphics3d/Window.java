@@ -1,7 +1,5 @@
 package graphics3d;
 
-import java.util.concurrent.Callable;
-
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWVidMode;
 
@@ -21,10 +19,9 @@ public class Window {
 	
 	private int width;
 	private int height;
-	
-	private Callable<Void> resize;
-	
+		
 	private MouseInput mouse;
+	private Engine engine;
 	
 	public static class WindowOptions {
 		public boolean compat = false;
@@ -34,8 +31,8 @@ public class Window {
 		public int height = 720;
     }
 	
-	public Window(String title, WindowOptions opts, Callable<Void> resize) {
-		this.resize = resize;
+	public Window(String title, WindowOptions opts, Engine engine) {
+		this.engine = engine;
 		
 		if (!glfwInit())
         	throw new IllegalStateException("Unable to initialize GLFW");
@@ -77,11 +74,7 @@ public class Window {
 			(_, w, h) -> {
 				width = w;
 				height = h;
-				try { this.resize.call(); }
-				catch (Exception e) {
-					System.err.print("Error calling resize callback: ");
-					System.err.println(e.getMessage());
-				}
+				engine.resize();
 			}
 		);
 		
@@ -93,7 +86,7 @@ public class Window {
 		
 		glfwSetKeyCallback(handle,
 			(_, key, _, action, _) -> {
-				keyCallback(key, action);
+				engine.keyCallback(key, action);
 			}
 		);
 		
@@ -122,10 +115,9 @@ public class Window {
 		width = fbwidth[0];
 		height = fbheight[0];
 	}
-
-	public void keyCallback(int key, int action) {
-		if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE)
-			glfwSetWindowShouldClose(handle, true);
+	
+	public void close() {
+		glfwSetWindowShouldClose(handle, true);
 	}
 	
 	public void cleanup() {
@@ -167,6 +159,11 @@ public class Window {
 	
 	public boolean windowShouldClose() {
 		return glfwWindowShouldClose(handle);
+	}
+	
+
+	public Engine getEngine() {
+		return engine;
 	}
 	
 }
