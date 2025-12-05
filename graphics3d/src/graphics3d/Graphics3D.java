@@ -3,6 +3,7 @@ package graphics3d;
 import static org.lwjgl.glfw.GLFW.*;
 
 import org.joml.Vector2f;
+import org.joml.Vector3f;
 
 import imgui.ImGui;
 import imgui.ImGuiIO;
@@ -30,6 +31,18 @@ public class Graphics3D implements AppInterface, GuiInterface {
         cubeEntity = new Entity("cube-entity", cubeModel.getId());
         cubeEntity.setPosition(0, 0, -2);
         scene.addEntity(cubeEntity);
+        
+        SceneLights sceneLights = new SceneLights();
+        sceneLights.getAmbientLight().setIntensity(0.3f);
+        scene.setLights(sceneLights);
+        sceneLights.getPointLights().add(new PointLight(new Vector3f(1, 1, 1),
+                new Vector3f(0, 0, -1.4f), 1.0f));
+
+        Vector3f coneDir = new Vector3f(0, 0, -1);
+        sceneLights.getSpotLights().add(new SpotLight(new PointLight(new Vector3f(1, 1, 1),
+                new Vector3f(0, 0, -1.4f), 0.0f), coneDir, 140.0f));
+        
+        scene.setGui(new LightControls(scene));
 	}
 	
 	@Override
@@ -53,18 +66,20 @@ public class Graphics3D implements AppInterface, GuiInterface {
         } else if (window.isKeyPressed(GLFW_KEY_D)) {
             camera.moveRight(move);
         }
-        if (window.isKeyPressed(GLFW_KEY_LEFT_SHIFT)) {
+        if (window.isKeyPressed(GLFW_KEY_SPACE)) {
             camera.moveUp(move);
-        } else if (window.isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {
+        } else if (window.isKeyPressed(GLFW_KEY_LEFT_SHIFT)) {
             camera.moveDown(move);
         }
 
         MouseInput mouseInput = window.getMouseInput();
         Vector2f displVec = mouseInput.getDisplVec();
-        camera.addRotation(
-    		(float) Math.toRadians(-displVec.x * MOUSE_SENSITIVITY),
-            (float) Math.toRadians(-displVec.y * MOUSE_SENSITIVITY)
-        );
+        if (window.getMouseInput().captured()) {
+        	camera.addRotation(
+        			(float) Math.toRadians(-displVec.x * MOUSE_SENSITIVITY),
+        			(float) Math.toRadians(-displVec.y * MOUSE_SENSITIVITY)
+        	);
+        }
         
         if (mouseInput.isRightButtonPressed() && !consumed)
         	window.getMouseInput().captureMouse();

@@ -9,12 +9,14 @@ public class Scene {
     private TextureCache textureCache;
     private Camera camera;
     private GuiInterface gui;
+    private SceneLights lights;
 
     public Scene(int width, int height) {
         modelMap = new HashMap<>();
         projection = new Projection(width, height);
         textureCache = new TextureCache();
         camera = new Camera();
+        lights = new SceneLights();
     }
 
     public void addEntity(Entity entity) {
@@ -51,6 +53,14 @@ public class Scene {
     
     public GuiInterface getGui() {
     	return gui;
+    }
+    
+    public SceneLights getLights() {
+        return lights;
+    }
+    
+    public void setLights(SceneLights lights) {
+        this.lights = lights;
     }
     
     public void setGui(GuiInterface gui) {

@@ -1,0 +1,5 @@
+# Cube Material
+newmtl cube
+map_Ka cube.png
+map_Kd cube.png
+map_Ks cube.png
