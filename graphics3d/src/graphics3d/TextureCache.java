@@ -22,11 +22,14 @@ public class TextureCache {
     }
 
     public Texture getTexture(String texturePath) {
-        Texture texture = null;
-        if (texturePath != null)
-            texture = textureMap.get(texturePath);
-        if (texture == null)
-            texture = textureMap.get(DEFAULT_TEXTURE);
-        return texture;
+        if (texturePath == null)
+        	return textureMap.get(DEFAULT_TEXTURE);
+        return textureMap.getOrDefault(texturePath, textureMap.get(DEFAULT_TEXTURE));
+    }
+    
+	public void reload() {
+		textureMap.values().forEach((Texture texture) -> {
+			texture.reload();
+    	});
     }
 }

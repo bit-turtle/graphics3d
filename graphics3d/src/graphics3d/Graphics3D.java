@@ -2,6 +2,11 @@ package graphics3d;
 
 import static org.lwjgl.glfw.GLFW.*;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.joml.Quaternionf;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
 
@@ -19,18 +24,40 @@ public class Graphics3D implements AppInterface, GuiInterface {
 		game.run();
 	}
 	
-	Entity cubeEntity;
-	float rotation;
+	List<Entity> level;
+	List<Entity> enemies;
+	// Block Texture Variants
+	String texture_variants[] = {
+			"resources/models/block/block.jpg",
+			"resources/models/block/brick.png",
+			"resources/models/block/question.jpg",	// Question with coins
+			"resources/models/block/pipe.jpg",
+			"resources/models/block/brick.png",	// Brick with coins
+			"resources/models/block/question.jpg",	// Question with mushroom/flower
+			"resources/models/block/brick.png",	// Brick with star
+			"resources/models/block/air.png",	// Air with 1 up
+	};
+	Map<String, String> model_variants;
 		
 	@Override
 	public void init(Window window, Scene scene, Render render) {
 		scene.setGui(this);
-		Model cubeModel = ModelLoader.loadModel("cube-model", "resources/models/cottage/cottage.obj",
+		// Mario Block default model
+		Model blockModel = ModelLoader.loadModel("mario block", "resources/models/block/block.obj",
                 scene.getTextureCache());
-        scene.addModel(cubeModel);
-        cubeEntity = new Entity("cube-entity", cubeModel.getId());
-        cubeEntity.setPosition(0, 0, -2);
-        scene.addEntity(cubeEntity);
+		scene.addModel(blockModel);
+		// Load Texture Variants
+		for (String variant : texture_variants)
+			scene.getTextureCache()
+			.createTexture(variant);
+		// Load Model Variants
+		model_variants = new HashMap<String, String>();
+		for (int i = 0; i < texture_variants.length; i++)
+			model_variants.put(texture_variants[i], blockModel.getId());
+		
+		this.level = MarioLevelLoader.loadLevel(scene, "resources/mariolevel.txt", texture_variants, model_variants);		
+		
+		scene.getCamera().setPosition(5, 5, 5);
         
         SceneLights sceneLights = new SceneLights();
         sceneLights.getAmbientLight().setIntensity(0.3f);
@@ -42,12 +69,17 @@ public class Graphics3D implements AppInterface, GuiInterface {
         sceneLights.getSpotLights().add(new SpotLight(new PointLight(new Vector3f(1, 1, 1),
                 new Vector3f(0, 0, -1.4f), 0.0f), coneDir, 140.0f));
         
-        scene.setGui(new LightControls(scene));
+        scene.setFlag("Cube Spins", new Flag(false));
+        scene.setGui(new GameGui(scene, window));
 	}
 	
 	@Override
 	public void escape(Window window, Scene scene) {
 		window.getMouseInput().freeMouse();
+		if (!scene.paused()) {
+			glfwSetCursorPos(window.getHandle(), window.getWidth()/2, window.getHeight()/2);
+        	scene.setGui(new PauseScreen(scene, window));
+		}
 	}
 	
 	@Override
@@ -80,9 +112,6 @@ public class Graphics3D implements AppInterface, GuiInterface {
         			(float) Math.toRadians(-displVec.y * MOUSE_SENSITIVITY)
         	);
         }
-        
-        if (mouseInput.isRightButtonPressed() && !consumed)
-        	window.getMouseInput().captureMouse();
     }
 	
 	@Override
@@ -109,12 +138,15 @@ public class Graphics3D implements AppInterface, GuiInterface {
 	
 	@Override
 	public void update(Window window, Scene scene, long deltatime) {
-		rotation += 1.5;
-        if (rotation > 360) {
-            rotation = 0;
-        }
-        //cubeEntity.setRotation(0, 1, 0, (float) Math.toRadians(rotation));
-        cubeEntity.updateModelMatrix();
+		scene.getModelMap().forEach((String _, Model model) -> {
+			model.getEntitiesList().forEach((Entity entity) -> {
+				if (scene.getFlag("Cube Spins").getValue())
+					entity.setRotation(entity.getRotation().rotateXYZ(deltatime*0.01f, deltatime*0.01f, deltatime*0.01f));
+				else
+					entity.setRotation(new Quaternionf());
+				entity.updateModelMatrix();
+			});
+		});
 	}
 	
 	@Override

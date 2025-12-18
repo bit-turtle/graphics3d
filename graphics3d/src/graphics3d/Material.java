@@ -17,7 +17,7 @@ public class Material {
     private String texturePath;
 
     public Material() {
-        meshList = new ArrayList<>();
+        meshList = new ArrayList<Mesh>();
         diffuseColor = DEFAULT_COLOR;
     }
     

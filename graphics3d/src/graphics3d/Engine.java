@@ -66,8 +66,10 @@ public class Engine {
                 	inputConsumed = false;
                 else
                 	inputConsumed = gui != null && gui.handleInput(scene, window);
-                logic.input(window, scene, now - initTime, inputConsumed);
-				logic.update(window, scene, timediff);
+                if (!scene.paused()) {
+                	logic.input(window, scene, now - initTime, inputConsumed);
+                	logic.update(window, scene, timediff);
+                }
 				updateTime = now;
 				deltaud--;
 			}

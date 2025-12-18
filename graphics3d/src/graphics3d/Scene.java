@@ -10,6 +10,9 @@ public class Scene {
     private Camera camera;
     private GuiInterface gui;
     private SceneLights lights;
+    private SkyBox sky;
+    private boolean paused = false;
+    private Map<String, Flag> flags;
 
     public Scene(int width, int height) {
         modelMap = new HashMap<>();
@@ -17,6 +20,7 @@ public class Scene {
         textureCache = new TextureCache();
         camera = new Camera();
         lights = new SceneLights();
+        flags = new HashMap<>();
     }
 
     public void addEntity(Entity entity) {
@@ -59,6 +63,14 @@ public class Scene {
         return lights;
     }
     
+    public SkyBox getSky() {
+    	return sky;
+    }
+    
+    public void setSky(SkyBox sky) {
+    	this.sky = sky;
+    }
+    
     public void setLights(SceneLights lights) {
         this.lights = lights;
     }
@@ -69,5 +81,29 @@ public class Scene {
 
     public void resize(int width, int height) {
         projection.updateProjMatrix(width, height);
+    }
+    
+    public void pause() {
+    	paused = true;
+    }
+    
+    public void resume() {
+    	paused = false;
+    }
+    
+    public boolean paused() {
+    	return this.paused;
+    }
+    
+    public Flag getFlag(String key) {
+    	return flags.get(key);
+    }
+    
+    public void setFlag(String key, Flag flag) {
+    	flags.put(key, flag);
+    }
+    
+    public Map<String, Flag> getFlags() {
+    	return flags;
     }
 }

@@ -1,6 +1,7 @@
 package graphics3d;
 
 import imgui.flag.ImGuiKey;
+
 import imgui.type.ImInt;
 import imgui.ImGuiIO;
 import imgui.ImGui;
@@ -15,6 +16,7 @@ import java.util.*;
 import static org.lwjgl.opengl.GL32.*;
 
 import static org.lwjgl.glfw.GLFW.*;
+
 
 public class GuiRender {
 

@@ -10,6 +10,7 @@ public class Entity {
     private Vector3f position;
     private Quaternionf rotation;
     private float scale;
+    private String textureVariant;
 
     public Entity(String id, String modelId) {
         this.id = id;
@@ -53,6 +54,10 @@ public class Entity {
     public void setRotation(float x, float y, float z, float angle) {
         this.rotation.fromAxisAngleRad(x, y, z, angle);
     }
+    
+    public void setRotation(Quaternionf rotation) {
+    	this.rotation = rotation;
+    }
 
     public void setScale(float scale) {
         this.scale = scale;
@@ -60,5 +65,19 @@ public class Entity {
 
     public void updateModelMatrix() {
         modelMatrix.translationRotateScale(position, rotation, scale);
+    }
+    
+
+    
+    public void setTextureVariant(String texturePath) {
+    	textureVariant = texturePath;
+    }
+    
+    public void clearTextureVariant() {
+    	textureVariant = null;
+    }
+    
+    public String getTextureVariant() {
+    	return textureVariant;
     }
 }

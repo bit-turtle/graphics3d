@@ -173,12 +173,18 @@ public class SceneRender {
 
             for (Material material : model.getMaterialList()) {
                 Texture texture = textureCache.getTexture(material.getTexturePath());
-                glActiveTexture(GL_TEXTURE0);
-                texture.bind();
 
                 for (Mesh mesh : material.getMeshList()) {
-                    glBindVertexArray(mesh.getVaoId());
+                	
                     for (Entity entity : entities) {
+                    	
+                        glActiveTexture(GL_TEXTURE0);
+                    	if (entity.getTextureVariant() == null)
+                            texture.bind();
+                    	else
+                    		textureCache.getTexture(entity.getTextureVariant()).bind();
+                        glBindVertexArray(mesh.getVaoId());
+                    	
                     	uniforms.setUniform("material.ambient", material.getAmbientColor());
                         uniforms.setUniform("material.diffuse", material.getDiffuseColor());
                         uniforms.setUniform("material.specular", material.getSpecularColor());
@@ -186,6 +192,7 @@ public class SceneRender {
                         uniforms.setUniform("modelMatrix", entity.getModelMatrix());
                         uniforms.setUniform("material.diffuse", material.getDiffuseColor());
                         glDrawElements(GL_TRIANGLES, mesh.getNumVertices(), GL_UNSIGNED_INT, 0);
+                        
                     }
                 }
             }

@@ -18,8 +18,12 @@ public class Texture {
     }
 
     public Texture(String path) {
-        try (MemoryStack stack = MemoryStack.stackPush()) {
-            this.path = path;
+    	this.path = path;
+    	reload();
+    }
+    
+    public void reload() {
+    	try (MemoryStack stack = MemoryStack.stackPush()) {
             IntBuffer w = stack.mallocInt(1);
             IntBuffer h = stack.mallocInt(1);
             IntBuffer channels = stack.mallocInt(1);
