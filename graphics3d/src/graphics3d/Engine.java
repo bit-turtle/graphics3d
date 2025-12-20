@@ -60,6 +60,8 @@ public class Engine {
 						
 			if (deltaud >= 1) {
 				long timediff = now - updateTime;
+				if (timediff > 250)
+					timediff = 250;
 				window.getMouseInput().input();
                 boolean inputConsumed;
                 if (window.getMouseInput().captured())

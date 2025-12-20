@@ -168,6 +168,15 @@ public class SceneRender {
 
         Collection<Model> models = scene.getModelMap().values();
         TextureCache textureCache = scene.getTextureCache();
+        
+        int renderedEntities = 0;
+        
+        boolean frustumCulling = scene.getFlag("Frustum Culling").enabled();        
+        Matrix4f frustumMatrix = new Matrix4f();
+        if (frustumCulling) {
+        	frustumMatrix.set(scene.getProjection().getProjMatrix());
+        	frustumMatrix.mul(scene.getCamera().getViewMatrix());
+        }
         for (Model model : models) {
             List<Entity> entities = model.getEntitiesList();
 
@@ -177,6 +186,14 @@ public class SceneRender {
                 for (Mesh mesh : material.getMeshList()) {
                 	
                     for (Entity entity : entities) {
+                    	
+                    	if (entity.hidden())
+                    		continue;
+                    	
+                    	if (frustumCulling && !frustumMatrix.testSphere(entity.getPosition().x, entity.getPosition().y, entity.getPosition().z, entity.getScale()*entity.getCullingRadius()))
+                    		continue;
+                    	
+                    	renderedEntities++;
                     	
                         glActiveTexture(GL_TEXTURE0);
                     	if (entity.getTextureVariant() == null)
@@ -201,6 +218,8 @@ public class SceneRender {
         glBindVertexArray(0);
 
         shader.unbind();
+        
+        scene.getFlag("Current Rendered Entity Count").setValue(renderedEntities);
     }
 	
 }

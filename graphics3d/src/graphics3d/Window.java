@@ -19,6 +19,10 @@ public class Window {
 	
 	private int width;
 	private int height;
+	
+	private int measuredFPS;
+	private int elapsedFrames;
+	private long prevUpdate;
 		
 	private MouseInput mouse;
 	private Engine engine;
@@ -114,6 +118,8 @@ public class Window {
 		glfwGetFramebufferSize(handle, fbwidth, fbheight);
 		width = fbwidth[0];
 		height = fbheight[0];
+		
+		prevUpdate = System.currentTimeMillis();
 	}
 	
 	public void close() {
@@ -153,8 +159,20 @@ public class Window {
 		glfwPollEvents();
 	}
 	
+	public int getFPS() {
+		return measuredFPS;
+	}
+	
 	public void update() {
 		glfwSwapBuffers(handle);
+		elapsedFrames++;
+		long currentTime = System.currentTimeMillis();
+		if (currentTime-prevUpdate > 1000) {
+			long timeDiff = currentTime-prevUpdate;
+			measuredFPS = (int) (elapsedFrames/(timeDiff/1000));
+			prevUpdate = currentTime;
+			elapsedFrames = 0;
+		}
 	}
 	
 	public boolean windowShouldClose() {

@@ -9,13 +9,12 @@ public class MouseInput {
     private Vector2f currentPos;
     private Vector2f displVec;
     private float scrollx, scrolly;
-    private boolean scrolling;
-    private boolean activescroll;
     private boolean inWindow;
     private boolean leftButtonPressed;
     private Vector2f previousPos;
     private boolean rightButtonPressed;
 	private boolean mouseCapture;
+	private boolean scrolling;
 	private int ignoreMouse;
 	private long handle;
     
@@ -30,7 +29,6 @@ public class MouseInput {
         scrollx = 0;
         scrolly = 0;
         scrolling = false;
-        activescroll = false;
         leftButtonPressed = false;
         rightButtonPressed = false;
         inWindow = false;
@@ -50,7 +48,6 @@ public class MouseInput {
         	scrollx = (float) xscroll;
         	scrolly = (float) yscroll;
         	scrolling = true;
-        	activescroll = true;
         });
     }
 
@@ -87,17 +84,12 @@ public class MouseInput {
         }
         previousPos.x = currentPos.x;
         previousPos.y = currentPos.y;
-        
-        if (!scrolling && activescroll) {
-        	scrollx *= SCROLL_SLOWDOWN;
-        	scrolly *= SCROLL_SLOWDOWN;
-        	if (scrollx <= SCROLL_STOP && scrolly <= SCROLL_STOP) {
-        		activescroll = false;
-        		scrollx = 0;
-        		scrolly = 0;
-        	}
+        if (!scrolling) {
+        	scrollx = 0;
+        	scrolly = 0;
         }
-        scrolling = false;
+        else
+        	scrolling = false;
     }
 
     public boolean isLeftButtonPressed() {

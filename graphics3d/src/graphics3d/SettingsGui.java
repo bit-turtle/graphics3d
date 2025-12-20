@@ -18,15 +18,39 @@ public class SettingsGui implements GuiInterface {
 	@Override
 	public void drawGui() {
 		ImGui.newFrame();
-		ImGui.setNextWindowSize(150, 154);
-		ImGui.setNextWindowPos(window.getWidth()/2-150/2, window.getHeight()/2-104/2);
+		ImGui.setNextWindowSize(150, 300);
+		ImGui.setNextWindowPos(window.getWidth()/2-150/2, window.getHeight()/2-300/2);
 		ImGui.begin("Settings", ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoMove);
 		if (ImGui.button("Back", 134, 20)) {
 			scene.setGui(new PauseScreen(scene, window));
 		}
 		
-		if (ImGui.checkbox("Cube Spins", scene.getFlag("Cube Spins").getValue())) {
+		if (ImGui.checkbox("Cube Spins", scene.getFlag("Cube Spins").enabled())) {
 			scene.getFlag("Cube Spins").toggleValue();
+		}
+		
+		if (ImGui.checkbox("Frustum Culling", scene.getFlag("Frustum Culling").enabled())) {
+			scene.getFlag("Frustum Culling").toggleValue();
+		}
+		
+		if (ImGui.checkbox("Show FPS", scene.getFlag("Show FPS").enabled())) {
+			scene.getFlag("Show FPS").toggleValue();
+		}
+		
+		if (ImGui.checkbox("Show Entities", scene.getFlag("Show Rendered Entity Count").enabled())) {
+			scene.getFlag("Show Rendered Entity Count").toggleValue();
+		}
+		
+		if (ImGui.checkbox("Show Camera", scene.getFlag("Show Camera Angle").enabled())) {
+			scene.getFlag("Show Camera Angle").toggleValue();
+		}
+		
+		if (ImGui.checkbox("Lock Camera", scene.getFlag("Lock Camera").enabled())) {
+			scene.getFlag("Lock Camera").toggleValue();
+		}
+		
+		if (ImGui.checkbox("Free Camera", scene.getFlag("Free Camera").enabled())) {
+			scene.getFlag("Free Camera").toggleValue();
 		}
 		
 		if (ImGui.button("Reload Textures")) {
@@ -46,6 +70,7 @@ public class SettingsGui implements GuiInterface {
         imGuiIO.addMousePosEvent(mousePos.x, mousePos.y);
         imGuiIO.addMouseButtonEvent(0, mouseInput.isLeftButtonPressed());
         imGuiIO.addMouseButtonEvent(1, mouseInput.isRightButtonPressed());
+        imGuiIO.addMouseWheelEvent(mouseInput.getScrollX(), mouseInput.getScrollY());
 
         boolean consumed = imGuiIO.getWantCaptureMouse() || imGuiIO.getWantCaptureKeyboard();
         return consumed;

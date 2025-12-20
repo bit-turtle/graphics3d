@@ -17,6 +17,14 @@ public class ModelLoader {
     private ModelLoader() {
         // Utility class
     }
+    
+    public static Model meshModel(String modelId, Mesh mesh) {
+    	List<Material> materialList = new ArrayList<>();
+    	Material material = new Material();
+    	material.getMeshList().add(mesh);
+    	materialList.add(material);
+    	return new Model(modelId, materialList);
+    }
 
     public static Model loadModel(String modelId, String modelPath, TextureCache textureCache) {
         return loadModel(modelId, modelPath, textureCache, aiProcess_GenSmoothNormals | aiProcess_JoinIdenticalVertices |

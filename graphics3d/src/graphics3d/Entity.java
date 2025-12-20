@@ -11,6 +11,10 @@ public class Entity {
     private Quaternionf rotation;
     private float scale;
     private String textureVariant;
+    private boolean hidden;
+    private float cullingradius = 2.f;
+    private String type;
+    private Vector3f velocity;
 
     public Entity(String id, String modelId) {
         this.id = id;
@@ -19,6 +23,8 @@ public class Entity {
         position = new Vector3f();
         rotation = new Quaternionf();
         scale = 1;
+        hidden = false;
+        velocity = new Vector3f();
     }
 
     public String getId() {
@@ -36,6 +42,15 @@ public class Entity {
     public Vector3f getPosition() {
         return position;
     }
+    
+    public Vector3f getVelocity() {
+    	return velocity;
+    }
+    
+    public void setVelocity(Vector3f velocity) {
+    	this.velocity = velocity;
+    }
+    
 
     public Quaternionf getRotation() {
         return rotation;
@@ -49,6 +64,12 @@ public class Entity {
         position.x = x;
         position.y = y;
         position.z = z;
+    }
+    
+    public void offset(float x, float y, float z) {
+    	position.x += x;
+        position.y += y;
+        position.z += z;
     }
 
     public void setRotation(float x, float y, float z, float angle) {
@@ -79,5 +100,33 @@ public class Entity {
     
     public String getTextureVariant() {
     	return textureVariant;
+    }
+    
+    public void show() {
+    	this.hidden = false;
+    }
+    
+    public void hide() {
+    	this.hidden = true;
+    }
+    
+    public boolean hidden () {
+    	return this.hidden;
+    }
+    
+    public void setCullingRadius(float radius) {
+    	this.cullingradius = radius;
+    } 
+    
+    public float getCullingRadius() {
+    	return this.cullingradius;
+    }
+    
+    public void setType(String type) {
+    	this.type = type;
+    }
+    
+    public String getType() {
+    	return this.type;
     }
 }

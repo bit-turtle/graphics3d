@@ -20,11 +20,11 @@ public class GameSave extends Thread {
 	
 	@Override
 	public void run() {
-		for (float i = 0.f; i <= 1.f; i+=0.1f) {
+		for (float i = 0.f; i <= 1.f; i+=0.01f) {
 			percent = i;
-			activity = "Test";
+			activity = "Cube Spins: " + (scene.getFlag("Cube Spins").getValue());
 			try {
-				Thread.sleep(1000);
+				Thread.sleep(10);
 			} catch (InterruptedException e) {}
 		}
 		percent = 1.f;

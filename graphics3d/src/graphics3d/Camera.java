@@ -33,6 +33,14 @@ public class Camera {
     public Matrix4f getViewMatrix() {
         return viewMatrix;
     }
+    
+    public Quaternionf getRotation() {
+    	return rotation;
+    }
+    
+    public void setRotation(Quaternionf rotation) {
+    	this.rotation = rotation;
+    }
 
     public void moveBackwards(float inc) {
         viewMatrix.positiveZ(direction).negate().mul(inc);

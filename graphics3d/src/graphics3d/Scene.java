@@ -106,4 +106,5 @@ public class Scene {
     public Map<String, Flag> getFlags() {
     	return flags;
     }
+    
 }

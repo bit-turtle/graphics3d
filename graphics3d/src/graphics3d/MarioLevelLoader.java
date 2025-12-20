@@ -1,19 +1,26 @@
 package graphics3d;
 
 import java.io.IOException;
+
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.joml.Vector2i;
+
 public class MarioLevelLoader {
-	static ArrayList<Entity> loadLevel(Scene scene, String path, String textures[], Map<String, String> models) {
-		ArrayList<Entity> level = new ArrayList<Entity>();
+	static HashMap<String, Entity> loadLevel(Scene scene, String path, String textures[], String models[], Map<String, String> enemyTextures) {
+		HashMap<String, Entity> level = new HashMap<String, Entity>();
 		List<String> leveldata = new ArrayList<String>();
+		int id = 0;
 		try {
-			leveldata = Files.readAllLines(Path.of("resources/data/mariolevel.txt"));
-		} catch (IOException e) {}
+			leveldata = Files.readAllLines(Path.of(path));
+		} catch (IOException e) {
+			System.out.println("Failed to load mario level");
+		}
 		int y = leveldata.size();
 		for (String row : leveldata) {
 			y--;
@@ -21,12 +28,31 @@ public class MarioLevelLoader {
 				char c = row.charAt(x);
 				if (c == 0x20)
 					continue;
-				Entity tile = new Entity(getBlockId(x, y), models.get(textures[c-0x30]));
-				level.add(tile);
-				tile.setPosition(x, y, 0);
-				tile.setTextureVariant(textures[c-0x30]);
-				tile.updateModelMatrix();
-				scene.addEntity(tile);
+				if (c <= 0x40) {
+					Entity tile = new Entity(getBlockId(x, y), models[c-0x30]);
+					tile.setPosition(x, y, 0);
+					tile.setTextureVariant(textures[c-0x30]);
+					tile.setType(String.format("%c", c));
+					tile.updateModelMatrix();
+					scene.addEntity(tile);
+					level.put(tile.getId(), tile);
+				}
+				else {
+					Entity enemy = new Entity(String.format("enemy %d", id++), enemyTextures.get("goomba"));
+					enemy.setType("goomba");
+					
+					switch (c) {
+						case 'g':
+							break;
+						case 'p':
+							
+							break;
+					}
+					
+					enemy.setPosition(x, y ,0);
+					enemy.updateModelMatrix();
+					scene.addEntity(enemy);
+				}
 			}
 			
 		}
@@ -35,5 +61,17 @@ public class MarioLevelLoader {
 	
 	static String getBlockId(int x, int y) {
 		return String.format("block %d %d", x, y);
+	}
+	
+	static Vector2i getBlockPos(String blockId) {
+		Vector2i pos = new Vector2i(0, 0);
+		
+		String sections[] = blockId.split(" ");
+		if (sections.length == 3) {
+			pos.x = Integer.parseInt(sections[1]);
+			pos.y = Integer.parseInt(sections[2]);
+		}
+		
+		return pos;
 	}
 }

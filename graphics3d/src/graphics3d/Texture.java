@@ -46,12 +46,14 @@ public class Texture {
     }
 
     public void cleanup() {
-        glDeleteTextures(id);
+        if (id != 0)
+        	glDeleteTextures(id);
     }
 
     private void generateTexture(int width, int height, ByteBuffer buf) {
+    	cleanup();
+    	
         id = glGenTextures();
-
         glBindTexture(GL_TEXTURE_2D, id);
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);

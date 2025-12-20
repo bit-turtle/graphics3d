@@ -125,6 +125,7 @@ public class LightControls implements GuiInterface {
         imGuiIO.addMousePosEvent(mousePos.x, mousePos.y);
         imGuiIO.addMouseButtonEvent(0, mouseInput.isLeftButtonPressed());
         imGuiIO.addMouseButtonEvent(1, mouseInput.isRightButtonPressed());
+        imGuiIO.addMouseWheelEvent(mouseInput.getScrollX(), mouseInput.getScrollY());
 
         boolean consumed = imGuiIO.getWantCaptureMouse() || imGuiIO.getWantCaptureKeyboard();
         if (consumed) {
