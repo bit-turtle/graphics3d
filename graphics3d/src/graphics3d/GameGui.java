@@ -1,5 +1,6 @@
 package graphics3d;
 
+import java.util.Map.Entry;
 import org.joml.Quaternionf;
 import org.joml.Vector2f;
 
@@ -32,6 +33,12 @@ public class GameGui implements GuiInterface {
 		if (scene.getFlag("Show Camera Angle").enabled()) {
 			Quaternionf angle = scene.getCamera().getRotation();
 			ImGui.text(String.format("Camera: %.2f, %.2f, %.2f, %.2f", angle.x, angle.y, angle.z, angle.w));
+		}
+		if (scene.getFlag("Show Flags").enabled()) {
+			ImGui.text("Flags:");
+			for (Entry<String, Flag> flag : scene.getFlags().entrySet()) {
+				ImGui.text("- " + flag.getKey() + ": " + flag.getValue().getValue());
+			}
 		}
 		ImGui.end();
         ImGui.endFrame();

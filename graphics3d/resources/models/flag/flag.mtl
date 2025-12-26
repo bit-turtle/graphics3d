@@ -1,0 +1,7 @@
+# Blender 4.4.0 MTL File: 'None'
+# www.blender.org
+
+newmtl Material.001
+map_Ka flag.png
+map_Kd flag.png
+map_Ks flag.png

@@ -36,6 +36,13 @@ public class MarioLevelLoader {
 					tile.updateModelMatrix();
 					scene.addEntity(tile);
 					level.put(tile.getId(), tile);
+					if (c == '<') {
+						Entity flag = new Entity("flag", "flag");
+						flag.setPosition(x, y, 0);
+						flag.setType("flag");
+						flag.updateModelMatrix();
+						scene.addEntity(flag);
+					}
 				}
 				else {
 					Entity enemy = new Entity(String.format("enemy %d", id++), enemyTextures.get("goomba"));

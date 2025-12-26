@@ -28,6 +28,7 @@ public class Window {
 	private Engine engine;
 	
 	public static class WindowOptions {
+		public int antiAliasing = 0;
 		public boolean compat = false;
 		public int fps = 0;
 		public int ups = 120;
@@ -67,6 +68,8 @@ public class Window {
 			width = mode.width();
 			height = mode.height();
 		}
+		
+        glfwWindowHint(opts.antiAliasing, 4);
 		
 		// Window Creation
 		handle = glfwCreateWindow(width, height, title, NULL, NULL);

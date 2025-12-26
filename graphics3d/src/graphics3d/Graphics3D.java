@@ -2,7 +2,7 @@ package graphics3d;
 
 import static org.lwjgl.glfw.GLFW.*;
 
-
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -21,7 +21,24 @@ public class Graphics3D implements AppInterface, GuiInterface {
     
     private static final float GRAVITY = 0.00005f;
     private static final float BLOCK_BUMP = 0.0075f;
+    private static final float COIN_BOUNCE = 0.015f;
     private static final float JUMP = 0.021f;
+    private static final float HOP = 0.01f;
+    private static final float SCORE_TEXT_SPEED = 0.005f;
+    private static final float POWERUP_RISE_SPEED = 0.005f;
+    
+    private static final long SCORE_TEXT_TIME = 500;
+    private static final long MULTIPLE_COIN_BRICK_TIME = 3800;
+    
+    private static final float SCORE_MODEL_SCALE = 0.8f;
+    private static final float COIN_MODEL_SCALE = 0.5f;
+    
+    private static final float POWERUP_HEIGHT = 2.0f;
+    private static final float MUSHROOM_SPEED = 0.0025f;
+    
+    private static final float POWERUP_OFFSET = 1.50f;
+    
+    private int nextid = 0;
 	
 	public static void main(String[] args) {
 		Engine game = new Engine("Graphics3D", new Window.WindowOptions(), new Graphics3D() );
@@ -48,9 +65,33 @@ public class Graphics3D implements AppInterface, GuiInterface {
 			/*:*/ "resources/models/block/air.png",	// : Invisible block
 			/*;*/ "resources/models/flag/pole.png",	// ; Pole
 			/*<*/ "resources/models/flag/poletop.png",	// < Pole Top
+			/*=*/ "resources/models/block/blank.png",	// Blank question
 	};
 	String model_variants[];
 	Map<String, String> enemy_texture_variants;
+	
+	String score_models[] = {
+			"100",
+			"200",
+			"300",
+			"400",
+			"500",
+			"600",
+			"700",
+			"800",
+			"900",
+			"1000",
+			"2000",
+			"3000",
+			"4000",
+			"5000",
+			"6000",
+			"7000",
+			"8000",
+			"9000",
+			"10000",
+			"1UP"
+	};
 		
 	@Override
 	public void init(Window window, Scene scene, Render render) {
@@ -70,6 +111,17 @@ public class Graphics3D implements AppInterface, GuiInterface {
 		scene.addModel(poleModel);
 		Model toppoleModel = ModelLoader.loadModel("poletop block", "resources/models/flag/poletop.obj", scene.getTextureCache());
 		scene.addModel(toppoleModel);
+		Model coinModel = ModelLoader.loadModel("coin", "resources/models/coin/coin.obj", scene.getTextureCache());
+		scene.addModel(coinModel);
+		Model flagModel = ModelLoader.loadModel("flag", "resources/models/flag/flag.obj", scene.getTextureCache());
+		scene.addModel(flagModel);
+		Model mushroomModel = ModelLoader.loadModel("mushroom", "resources/models/mushroom/mushroom.obj", scene.getTextureCache());
+		scene.addModel(mushroomModel);
+		// Load Score Models
+		for (String modelId : score_models) {
+			Model scoreModel = ModelLoader.loadModel(modelId, "resources/models/score/" + modelId + ".obj", scene.getTextureCache());
+			scene.addModel(scoreModel);
+		}
 		// Load Texture Variants
 		for (String variant : texture_variants)
 			scene.getTextureCache()
@@ -108,13 +160,18 @@ public class Graphics3D implements AppInterface, GuiInterface {
         scene.setFlag("Player on Ground", new Flag(false));
         scene.setFlag("Lock Camera", new Flag(true));
         scene.setFlag("Free Camera", new Flag(false));
-        
+        scene.setFlag("Player auto walk", new Flag(false));
+        scene.setFlag("Player flagpole slide", new Flag(false));
+        scene.setFlag("Show Flags", new Flag(false));
+        scene.setFlag("Coins", new Flag(0));
+        scene.setFlag("Score", new Flag(0));
+        scene.setFlag("Lives", new Flag(3));
         scene.setGui(new GameGui(scene, window));
         
         player = new Entity("player entity", toppoleModel.getId());
         player.setTextureVariant("resources/models/block/question.jpg");
         player.setType("player");
-        player.setPosition(0, 5, 0);
+        player.setPosition(20, 5, 0);
         scene.addEntity(player);
 	}
 	
@@ -138,17 +195,17 @@ public class Graphics3D implements AppInterface, GuiInterface {
             camera.moveForward(move);
         }
         
-        if (window.isKeyPressed(GLFW_KEY_A)) {
-            velocity.x = -MOVEMENT_SPEED;
-        } else if (window.isKeyPressed(GLFW_KEY_D)) {
-            velocity.x = MOVEMENT_SPEED;
-        }
-        else
-        	velocity.x = 0;
-        if (window.isKeyPressed(GLFW_KEY_SPACE) && scene.getFlag("Player on Ground").enabled()) {
-           velocity.y = JUMP;
-        } else if (window.isKeyPressed(GLFW_KEY_LEFT_SHIFT)) {
-            camera.moveDown(move);
+        if (!scene.getFlag("Player auto walk").enabled()) {
+	        if (window.isKeyPressed(GLFW_KEY_A)) {
+	            velocity.x = -MOVEMENT_SPEED;
+	        } else if (window.isKeyPressed(GLFW_KEY_D)) {
+	            velocity.x = MOVEMENT_SPEED;
+	        }
+	        else
+	        	velocity.x = 0;
+	        if (window.isKeyPressed(GLFW_KEY_SPACE) && scene.getFlag("Player on Ground").enabled()) {
+	           velocity.y = JUMP;
+	        }
         }
         player.setVelocity(velocity);
 
@@ -190,20 +247,101 @@ public class Graphics3D implements AppInterface, GuiInterface {
 		SceneLights lights = scene.getLights();
 		lights.getPointLights().clear();
 		lights.getSpotLights().clear();
+		ArrayList<Entity> toBeRemoved = new ArrayList<Entity>();
 		scene.getModelMap().forEach((String _, Model model) -> {
 			model.getEntitiesList().forEach((Entity entity) -> {
 				// Spin
 				if (scene.getFlag("Cube Spins").enabled())
 					entity.setRotation(entity.getRotation().rotateXYZ(deltatime*0.01f, deltatime*0.01f, deltatime*0.01f));
-				else
-					entity.setRotation(new Quaternionf());
 				
-				if (entity.getType().length() > 1) {
+				if (entity.getType().equals("coin")) {
+					Vector3f position = entity.getPosition();
+					Vector3f velocity = entity.getVelocity();
+					velocity.y -= GRAVITY*deltatime;
+					position.y += velocity.y*deltatime;
+					entity.setVelocity(velocity);
+					entity.setPosition(position.x, position.y, position.z);
+					entity.setRotation(entity.getRotation().rotateY(deltatime));
+					if (velocity.y <= 0)
+						entity.setScale(0.5f*(1-velocity.y/(-COIN_BOUNCE/2)));
+					if (velocity.y <= -COIN_BOUNCE/2) {
+						toBeRemoved.add(entity);
+						scene.getFlag("Score").increment(200);
+						Entity score = new Entity(entity.getId()+" score", "200");
+						score.setType("score");
+						scene.setFlag(score.getId() + " time", new Flag(0));
+						score.setPosition(position.x, position.y, position.z);
+						score.setRotation(new Quaternionf().rotateX(90));
+						score.setScale(SCORE_MODEL_SCALE);
+						scene.addEntity(score);
+					}
+				}
+				else if (entity.getType().equals("score")) {
+					Vector3f position = entity.getPosition();
+					scene.getFlag(entity.getId() + " time").time(deltatime);
+					position.y += SCORE_TEXT_SPEED*deltatime;
+					entity.setPosition(position.x, position.y, position.z);
+					if (scene.getFlag(entity.getId()+ " time").getValue() > SCORE_TEXT_TIME) {
+						toBeRemoved.add(entity);
+						scene.getFlags().remove(entity.getId() + " time");
+					}
+				}
+				else if (entity == player && scene.getFlag("Player flagpole slide").enabled()) {
+					Vector3f position = entity.getPosition();
+					Vector3f velocity = entity.getVelocity();
+					
+					velocity.y = -MOVEMENT_SPEED;
+					
+					entity.setVelocity(velocity);
+					
+					position.y += velocity.y * deltatime;
+					
+					if (position.y <= 5.0f) {
+						if (scene.getFlag("Player flagpole slide").getValue() == 1) {
+							position.x+=0.75f;
+							scene.getFlag("Player flagpole slide").setValue(2);
+						}
+						position.y = 5.0f;
+					}
+					
+					entity.setPosition(position.x, position.y, position.z);
+				}
+				else if (entity.getType().equals("flag") && scene.getFlag("Player flagpole slide").enabled()) {
+					Vector3f position = entity.getPosition();
+					Vector3f velocity = entity.getVelocity();
+					
+					velocity.y = -MOVEMENT_SPEED;
+					
+					entity.setVelocity(velocity);
+					
+					position.y += velocity.y * deltatime;
+					
+					if (position.y <= 5.0f) {
+						position.y = 5.0f;
+						player.setVelocity(new Vector3f(MOVEMENT_SPEED, HOP, 0.f));
+						player.setPosition(entity.getPosition().x+1.f, 5.f, 0.f);
+						scene.getFlag("Player flagpole slide").setValue(false);
+					}
+					
+					entity.setPosition(position.x, position.y, position.z);
+				}
+				else if (entity.getType().equals("powerup")) {
+					String id[] = entity.getId().split(" ");
+					float targetHeight = Float.parseFloat(id[1]);
+					Vector3f position = entity.getPosition();
+					position.y+=POWERUP_RISE_SPEED*deltatime;
+					entity.setPosition(position.x, position.y, position.z);
+					if (position.y >= targetHeight+POWERUP_HEIGHT) {
+						position.y = targetHeight+POWERUP_HEIGHT;
+						entity.setPosition(position.x, position.y, position.z);
+						entity.setType(id[0]);
+					}
+				}
+				else if (entity.getType().length() > 1) {
 					Vector3f position = entity.getPosition();
 					Vector3f velocity = entity.getVelocity();
 					// Physics
 					velocity.y -= GRAVITY*deltatime;
-					
 					
 					entity.setVelocity(velocity);
 					
@@ -222,11 +360,23 @@ public class Graphics3D implements AppInterface, GuiInterface {
 					Entity rightEntity2 = level.getOrDefault(MarioLevelLoader.getBlockId(rightX, bottomY), null);
 					if (velocity.x < 0 && (leftEntity != null || leftEntity2 != null) ) {
 						position.x = (float) Math.floor(position.x)+1.f;
-						velocity.x = 0;
+						velocity.x = (entity.getType().equals("mushroom")) ? -velocity.x : 0;
 					}
 					if (velocity.x > 0 && (rightEntity != null || rightEntity2 != null) ) {
 						position.x = (float) Math.floor(position.x);
-						velocity.x = 0;
+						velocity.x = (entity.getType().equals("mushroom")) ? -velocity.x : 0;
+						
+						if (entity == player) {
+							Entity hitBlock = (rightEntity != null) ? rightEntity : rightEntity2;
+							if (hitBlock.getType().equals(";") || hitBlock.getType().equals("<")) {
+								scene.getFlag("Player auto walk").setValue(true);
+								scene.getFlag("Player flagpole slide").setValue(true);
+								position.x = hitBlock.getPosition().x-0.25f;
+								position.y = hitBlock.getPosition().y;
+								position.z = hitBlock.getPosition().z;
+								
+							}
+						}
 					}
 					
 					// Y Movement
@@ -248,12 +398,60 @@ public class Graphics3D implements AppInterface, GuiInterface {
 						position.y = (float) Math.floor(position.y);
 						velocity.y = 0;
 						
-						if (entity.getType() == "player") {
+						if (entity == player) {
 							Entity bumpedBlock = (leftX == centerX) ? ceilingEntity : ceilingEntity2;
 							if (bumpedBlock != null) {
-								Vector3f blockVel = bumpedBlock.getVelocity();
-								blockVel.y = BLOCK_BUMP;
-								bumpedBlock.setVelocity(blockVel);
+								if (!bumpedBlock.getType().equals("~") && !bumpedBlock.getType().equals(";") && !bumpedBlock.getType().equals("<")) {
+									Vector3f blockVel = bumpedBlock.getVelocity();
+									blockVel.y = BLOCK_BUMP;
+									bumpedBlock.setVelocity(blockVel);
+								}
+								
+								if (bumpedBlock.getType().equals("2")) {
+									Entity coin = new Entity("coin " + nextid++ + " " + bumpedBlock.getId(), "coin");
+									coin.setPosition(bumpedBlock.getPosition().x+0.5f, bumpedBlock.getPosition().y+1.0f, 0.5f);
+									coin.setType("coin");
+									coin.setVelocity(new Vector3f(0, COIN_BOUNCE, 0));
+									coin.setScale(COIN_MODEL_SCALE);
+									scene.addEntity(coin);
+									scene.getFlag("Coins").increment(1);
+									bumpedBlock.setType("~");
+									bumpedBlock.setTextureVariant("resources/models/block/blank.png");
+								}
+								else if (bumpedBlock.getType().equals("4")) {
+									if (scene.getFlag(bumpedBlock.getId() + " coin timer") == null)
+										scene.setFlag(bumpedBlock.getId() + " coin timer", new Flag(0));
+									Entity coin = new Entity("coin " + nextid++ + " " + bumpedBlock.getId(), "coin");
+									coin.setPosition(bumpedBlock.getPosition().x+0.5f, bumpedBlock.getPosition().y+1.0f, 0.5f);
+									coin.setType("coin");
+									coin.setVelocity(new Vector3f(0, COIN_BOUNCE, 0));
+									coin.setScale(COIN_MODEL_SCALE);
+									scene.getFlag("Coins").increment(1);
+									scene.addEntity(coin);
+									if (scene.getFlag(bumpedBlock.getId() + " coin timer").getValue() >= MULTIPLE_COIN_BRICK_TIME) {
+										bumpedBlock.setType("~");
+										bumpedBlock.setTextureVariant("resources/models/block/blank.png");
+										scene.getFlags().remove(bumpedBlock.getId() + " coin timer");
+									}
+								}
+								else if (bumpedBlock.getType().equals("5")) {
+									bumpedBlock.setType("~");
+									bumpedBlock.setTextureVariant("resources/models/block/blank.png");
+									Entity powerup = new Entity("mushroom " + position.y, "mushroom");
+									powerup.setPosition(position.x, position.y+POWERUP_OFFSET, position.z);
+									powerup.setType("powerup");
+									powerup.updateModelMatrix();
+									powerup.setVelocity(new Vector3f(MUSHROOM_SPEED, 0, 0));
+									scene.addEntity(powerup);
+								}
+								else if (bumpedBlock.getType().equals("7")) {
+									Entity powerup = new Entity("mushroom " + position.y + " " + entity.getId(), "mushroom");
+									powerup.setPosition(position.x, position.y+POWERUP_OFFSET, position.z);
+									powerup.setType("powerup");
+									powerup.updateModelMatrix();
+									powerup.setVelocity(new Vector3f(MUSHROOM_SPEED, 0, 0));
+									scene.addEntity(powerup);
+								}
 							}
 						}
 					}
@@ -270,8 +468,27 @@ public class Graphics3D implements AppInterface, GuiInterface {
 					entity.setVelocity(velocity);
 					
 					
-					if (entity.getType() == "player")
+					if (entity == player)
 						scene.getFlag("Player on Ground").setValue(onGround);
+					
+					if (entity == player) {
+						Vector3f lightPos = new Vector3f(0.5f, 0.5f, 0.5f);
+						lightPos.add(entity.getPosition());
+						PointLight light = new PointLight(
+							new Vector3f(1,1,1),
+							lightPos,
+							0.4f
+						);
+						SpotLight spotlight = new SpotLight(light, new Vector3f(0, -1, 0), 60.f);
+						lights.getSpotLights().add(spotlight);
+						// 3rd Person Camera
+						if (!scene.getFlag("Free Camera").enabled()) {
+							cameraPosition.x = entity.getPosition().x;
+							scene.getCamera().setPosition(cameraPosition.x+0.5f, cameraPosition.y+0.5f, 0.5f);
+							scene.getCamera().moveBackwards(cameraZoom);
+						}
+					}
+					
 				}
 				else {
 					Vector2i blockPos = MarioLevelLoader.getBlockPos(entity.getId());
@@ -280,28 +497,13 @@ public class Graphics3D implements AppInterface, GuiInterface {
 					entityVel.y -= GRAVITY*deltatime;
 					entity.setVelocity(entityVel);
 					entityPos.y += entityVel.y*deltatime;
-					if (entityPos.y < blockPos.y) {
+					if (entityPos.y < blockPos.y || scene.getFlag("Player auto walk").enabled()) {
 						entityPos.y = blockPos.y;
 						entityVel.y = 0;
 					}
-				}
-				
-				if (entity.getType() == "player") {
-					Vector3f lightPos = new Vector3f(0.5f, 0.5f, 0.5f);
-					lightPos.add(entity.getPosition());
-					PointLight light = new PointLight(
-						new Vector3f(1,1,1),
-						lightPos,
-						0.4f
-					);
-					//lights.getPointLights().add(light);
-					SpotLight spotlight = new SpotLight(light, new Vector3f(0, -1, 0), 60.f);
-					lights.getSpotLights().add(spotlight);
-					// 3rd Person Camera
-					if (!scene.getFlag("Free Camera").enabled()) {
-						cameraPosition.x = entity.getPosition().x;
-						scene.getCamera().setPosition(cameraPosition.x+0.5f, cameraPosition.y+0.5f, 0.5f);
-						scene.getCamera().moveBackwards(cameraZoom);
+					
+					if (entity.getType().equals("4") && scene.getFlag(entity.getId() + " coin timer") != null) {
+						scene.getFlag(entity.getId() + " coin timer").time(deltatime);
 					}
 				}
 				
@@ -309,6 +511,10 @@ public class Graphics3D implements AppInterface, GuiInterface {
 				entity.updateModelMatrix();
 			});
 		});
+		
+		for (Entity entity : toBeRemoved) {
+			scene.removeEntity(entity);
+		}
 	}
 	
 	@Override

@@ -30,6 +30,12 @@ public class Scene {
             throw new RuntimeException("Could not find model [" + modelId + "]");
         model.getEntitiesList().add(entity);
     }
+    
+    public void removeEntity(Entity entity) {
+    	String modelId = entity.getModelId();
+        Model model = modelMap.get(modelId);
+        model.getEntitiesList().remove(entity);
+    }
 
     public void addModel(Model model) {
         modelMap.put(model.getId(), model);
@@ -96,7 +102,7 @@ public class Scene {
     }
     
     public Flag getFlag(String key) {
-    	return flags.get(key);
+    	return flags.getOrDefault(key, null);
     }
     
     public void setFlag(String key, Flag flag) {

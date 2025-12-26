@@ -53,6 +53,10 @@ public class SettingsGui implements GuiInterface {
 			scene.getFlag("Free Camera").toggleValue();
 		}
 		
+		if (ImGui.checkbox("Show Flags", scene.getFlag("Show Flags").enabled())) {
+			scene.getFlag("Show Flags").toggleValue();
+		}
+		
 		if (ImGui.button("Reload Textures")) {
 			scene.getTextureCache().reload();
 		}

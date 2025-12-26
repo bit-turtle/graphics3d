@@ -13,6 +13,8 @@ public class Engine {
 	private int targetUps;
 	private boolean running;
 	
+	private static long MAX_DELTA = 100;
+	
 	public Engine(String title, Window.WindowOptions opts, AppInterface logic) {
 		this.logic = logic;
 		window = new Window(title, opts, this);
@@ -60,8 +62,8 @@ public class Engine {
 						
 			if (deltaud >= 1) {
 				long timediff = now - updateTime;
-				if (timediff > 250)
-					timediff = 250;
+				if (timediff > MAX_DELTA)
+					timediff = MAX_DELTA;
 				window.getMouseInput().input();
                 boolean inputConsumed;
                 if (window.getMouseInput().captured())

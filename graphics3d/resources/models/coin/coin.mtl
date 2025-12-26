@@ -1,0 +1,7 @@
+# Blender 4.4.0 MTL File: 'None'
+# www.blender.org
+
+newmtl Material.001
+map_Ka coin.png
+map_Kd coin.png
+map_Ks coin.png

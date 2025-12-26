@@ -1,0 +1,6 @@
+# Score Material
+
+newmtl score
+map_Ka score.png
+map_Kd score.png
+map_Ks score.png
