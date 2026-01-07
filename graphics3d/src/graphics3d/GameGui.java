@@ -26,6 +26,17 @@ public class GameGui implements GuiInterface {
 		ImGui.setNextWindowPos(0, 0);
 		ImGui.setNextWindowSize(window.getWidth(), window.getHeight());
 		ImGui.begin("Data Window", ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoBackground | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoInputs | ImGuiWindowFlags.NoMouseInputs | ImGuiWindowFlags.NoScrollWithMouse | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoTitleBar);
+		ImGui.beginTable("Game Info", 4);
+		ImGui.tableNextRow();
+		ImGui.tableSetColumnIndex(0);
+		ImGui.text("SCORE: "+scene.getFlag("Score").getValue());
+		ImGui.tableSetColumnIndex(1);
+		ImGui.text("COINS: "+scene.getFlag("Coins").getValue());
+		ImGui.tableSetColumnIndex(2);
+		ImGui.text("LIVES: "+scene.getFlag("Lives").getValue());
+		ImGui.tableSetColumnIndex(3);
+		ImGui.text("TIME: "+scene.getFlag("Time").getValue());
+		ImGui.endTable();
 		if (scene.getFlag("Show FPS").enabled())
 			ImGui.text("FPS: " + window.getFPS());
 		if (scene.getFlag("Show Rendered Entity Count").enabled())

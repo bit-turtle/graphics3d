@@ -25,6 +25,8 @@ public class Render {
 		
 		glViewport(0,0, window.getWidth(), window.getHeight());
 		sky.render(scene);
+		glClear(GL_DEPTH_BUFFER_BIT);
+		
 		render.render(scene);
 		gui.render(scene);
 	}
