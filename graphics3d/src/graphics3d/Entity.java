@@ -9,7 +9,7 @@ public class Entity {
     private Matrix4f modelMatrix;
     private Vector3f position;
     private Quaternionf rotation;
-    private float scale;
+    private Vector3f scale;
     private String textureVariant;
     private boolean hidden;
     private float cullingradius = 2.f;
@@ -22,7 +22,7 @@ public class Entity {
         modelMatrix = new Matrix4f();
         position = new Vector3f();
         rotation = new Quaternionf();
-        scale = 1;
+        scale = new Vector3f(1,1,1);
         hidden = false;
         velocity = new Vector3f();
     }
@@ -57,7 +57,15 @@ public class Entity {
     }
 
     public float getScale() {
-        return scale;
+        return scale.z;
+    }
+    
+    public Vector3f getScaleVector() {
+    	return scale;
+    }
+    
+    public void setScaleVector(Vector3f scale) {
+    	this.scale = scale;
     }
 
     public final void setPosition(float x, float y, float z) {
@@ -81,7 +89,7 @@ public class Entity {
     }
 
     public void setScale(float scale) {
-        this.scale = scale;
+        this.scale = new Vector3f(scale,scale,scale);
     }
 
     public void updateModelMatrix() {
