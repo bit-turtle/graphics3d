@@ -45,17 +45,17 @@ public class MarioLevelLoader {
 					}
 				}
 				else {
-					Entity enemy = new Entity(String.format("enemy %d", id++), enemyTextures.get("goomba"));
-					enemy.setType("goomba");
+					Entity enemy = null;
 					
 					switch (c) {
 						case 'g':
-							break;
-						case 'p':
-							
+							enemy = new Entity(String.format("enemy %d", id++), "goomba");
+							enemy.setType("goomba");
 							break;
 					}
 					
+					if (enemy == null)
+						continue;
 					enemy.setPosition(x, y ,0);
 					enemy.updateModelMatrix();
 					scene.addEntity(enemy);

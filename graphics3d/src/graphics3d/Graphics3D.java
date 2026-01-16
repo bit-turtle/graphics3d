@@ -17,7 +17,8 @@ import imgui.ImGuiIO;
 public class Graphics3D implements AppInterface, GuiInterface {
 	
 	private static final float MOUSE_SENSITIVITY = 0.1f;
-    private static final float MOVEMENT_SPEED = 0.005f;
+    private static final float MOVEMENT_SPEED = 0.008f;
+    private static final float MOVEMENT_ACCEL = 0.00001f;
     
     private static final float GRAVITY = 0.00005f;
     private static final float BLOCK_BUMP = 0.0075f;
@@ -34,15 +35,18 @@ public class Graphics3D implements AppInterface, GuiInterface {
     private static final float SCORE_MODEL_SCALE = 0.8f;
     private static final float COIN_MODEL_SCALE = 0.5f;
     
-    private static final float POWERUP_HEIGHT = 2.5f;
+    private static final float POWERUP_HEIGHT = 2.0f;
     private static final float MUSHROOM_SPEED = 0.0025f;
     
-    private static final float POWERUP_OFFSET = 1.50f;
+    private static final float POWERUP_OFFSET = 0.50f;
     
     private static final float FELL_OFF_A_CLIFF = -32.f;
     
     private static final long TIME = 400;
     private static final float TIME_SCALE = 2.5f;
+    
+    private static final float HITBOX_WIDTH = 0.8f;
+    private static final float HITBOX_HEIGHT = 1.0f;
     
     private static final Vector3f RESPAWN_LOCATION = new Vector3f(20, 5, 0);
     
@@ -50,6 +54,22 @@ public class Graphics3D implements AppInterface, GuiInterface {
     private static final float DIE_ZVEL = 0.002f;
     
     private static final long INVINCIBLE = 3000;
+    
+    private static final float BLOCK_ZVEL = 0.003f;
+    
+    private static final long BIG_ANIMATION_TIME = 500;
+    
+    private static final float ENEMY_BOUNCE = 0.01f;
+    
+    private static final float GOOMBA_SPEED = 0.003f;
+    
+    private static final float ENEMY_ACTIVATION_DIST = 12.f;
+    
+    private static final float POLE_5000 = 12.f;
+    private static final float POLE_4000 = 10.f;
+    private static final float POLE_2000 = 8.f;
+    private static final float POLE_800 = 4.f;
+    private static final float POLE_400 = 2.f;
     
     private int nextid = 0;
 	
@@ -133,6 +153,10 @@ public class Graphics3D implements AppInterface, GuiInterface {
 		scene.addModel(mushroomModel);
 		Model upshroomModel = ModelLoader.loadModel("upshroom", "resources/models/mushroom/upshroom.obj", scene.getTextureCache());
 		scene.addModel(upshroomModel);
+		Model goombaModel = ModelLoader.loadModel("goomba", "resources/models/mushroom/mushroom.obj", scene.getTextureCache());
+		scene.addModel(goombaModel);
+		Model starModel = ModelLoader.loadModel("star", "resources/models/block/block.obj", scene.getTextureCache());
+		scene.addModel(starModel);
 		// Load Score Models
 		for (String modelId : score_models) {
 			Model scoreModel = ModelLoader.loadModel(modelId, "resources/models/score/" + modelId + ".obj", scene.getTextureCache());
@@ -185,6 +209,7 @@ public class Graphics3D implements AppInterface, GuiInterface {
         scene.setFlag("Lives", new Flag(3));
         scene.setFlag("Timer", new Flag(0));
         scene.setFlag("Time", new Flag(0));
+        scene.setFlag("Enemies Bounced", new Flag(0));
         
 
         scene.setFlag("Big mario", new Flag(false));
@@ -249,12 +274,27 @@ public class Graphics3D implements AppInterface, GuiInterface {
         
         if (!scene.getFlag("Player auto walk").enabled() && !scene.getFlag("Player dies").enabled()) {
 	        if (window.isKeyPressed(GLFW_KEY_A)) {
-	            velocity.x = -MOVEMENT_SPEED;
+	            velocity.x -= MOVEMENT_ACCEL * deltatime;
+	            if (velocity.x < -MOVEMENT_SPEED && !window.isKeyPressed(GLFW_KEY_LEFT_SHIFT)) {
+	            	velocity.x = -MOVEMENT_SPEED;
+	            }
 	        } else if (window.isKeyPressed(GLFW_KEY_D)) {
-	            velocity.x = MOVEMENT_SPEED;
+	            velocity.x += MOVEMENT_ACCEL * deltatime;
+	            if (velocity.x > MOVEMENT_SPEED && !window.isKeyPressed(GLFW_KEY_LEFT_SHIFT)) {
+	            	velocity.x = MOVEMENT_SPEED;
+	            }
 	        }
-	        else
-	        	velocity.x = 0;
+	        else {
+	        	float initvel = velocity.x;
+	        	if (velocity.x > 0) {
+	        		velocity.x -= MOVEMENT_ACCEL*deltatime;
+	        	}
+	        	else if (velocity.x < 0) {
+	        		velocity.x += MOVEMENT_ACCEL*deltatime;
+	        	}
+	        	if ((velocity.x > 0) ^ (initvel > 0))
+	        		velocity.x = 0;
+	        }
 	        if (window.isKeyPressed(GLFW_KEY_SPACE) && scene.getFlag("Player on Ground").enabled()) {
 	           velocity.y = JUMP;
 	        }
@@ -301,7 +341,7 @@ public class Graphics3D implements AppInterface, GuiInterface {
 		lights.getSpotLights().clear();
 		ArrayList<Entity> toBeRemoved = new ArrayList<Entity>();
 		ArrayList<Entity> toBeAdded = new ArrayList<Entity>();
-		scene.getFlag("Timer").time(deltatime);
+		if (!scene.getFlag("Player auto walk").enabled()) scene.getFlag("Timer").time(deltatime);
 		if (scene.getFlag("Invincibility").getValue() > 0) scene.getFlag("Invincibility").increment((int)-deltatime);
 		scene.getFlag("Time").setValue((int)(TIME-scene.getFlag("Timer").getValue()*TIME_SCALE/1000));
 		scene.getModelMap().forEach((String _, Model model) -> {
@@ -319,8 +359,8 @@ public class Graphics3D implements AppInterface, GuiInterface {
 					entity.setPosition(position.x, position.y, position.z);
 					entity.setRotation(entity.getRotation().rotateY(deltatime));
 					if (velocity.y <= 0)
-						entity.setScale(0.5f*(1-velocity.y/(-COIN_BOUNCE/2)));
-					if (velocity.y <= -COIN_BOUNCE/2) {
+						entity.setScale(0.5f*(1-velocity.y/(-COIN_BOUNCE/1.5f)));
+					if (velocity.y <= -COIN_BOUNCE/1.5) {
 						toBeRemoved.add(entity);
 						scene.getFlag("Score").increment(200);
 						Entity score = new Entity(entity.getId()+" score", "200");
@@ -388,14 +428,22 @@ public class Graphics3D implements AppInterface, GuiInterface {
 					position.y+=POWERUP_RISE_SPEED*deltatime;
 					entity.setPosition(position.x, position.y, position.z);
 					if (position.y >= targetHeight+POWERUP_HEIGHT) {
-						position.y = targetHeight+POWERUP_HEIGHT;
+						position.y = targetHeight+POWERUP_HEIGHT+0.0001f;
 						entity.setPosition(position.x, position.y, position.z);
 						entity.setType(id[0]);
 					}
 				}
 				else if (entity.getType().length() > 1) {
+					
+					
 					Vector3f position = entity.getPosition();
 					Vector3f velocity = entity.getVelocity();
+					
+					if (entity.getType().equals("goomba")) {
+						if (velocity.x == 0 && player.getPosition().x+ENEMY_ACTIVATION_DIST >= position.x) {
+							velocity.x = -GOOMBA_SPEED;
+						}
+					}
 					// Physics
 					velocity.y -= GRAVITY*deltatime;
 					
@@ -409,9 +457,9 @@ public class Graphics3D implements AppInterface, GuiInterface {
 					// X Movement
 					position.x += velocity.x*deltatime;
 					entity.setPosition(position.x, position.y, position.z);
-					int leftX = (int) Math.floor(entity.getPosition().x);
+					int leftX = (int) Math.floor(entity.getPosition().x+(1-HITBOX_WIDTH));
 					int bottomY = (int) Math.floor(entity.getPosition().y);
-					int rightX = (int) Math.ceil(entity.getPosition().x);
+					int rightX = (int) Math.ceil(entity.getPosition().x-(1-HITBOX_WIDTH));
 					int topY = (int) Math.ceil(entity.getPosition().y);
 					
 					// Collision check X
@@ -420,14 +468,22 @@ public class Graphics3D implements AppInterface, GuiInterface {
 					Entity rightEntity = level.getOrDefault(MarioLevelLoader.getBlockId(rightX, topY), null);
 					Entity rightEntity2 = level.getOrDefault(MarioLevelLoader.getBlockId(rightX, bottomY), null);
 					
-					if ( !(entity.getType().equals("player") && scene.getFlag("Player dies").enabled()) ) {
+					if ( !(entity.getType().equals("player") ) || !scene.getFlag("Player dies").enabled() ) {
 					if (velocity.x < 0 && (leftEntity != null || leftEntity2 != null) ) {
-						position.x = (float) Math.floor(position.x)+1.f;
-						velocity.x = (entity.getType().equals("mushroom")) ? -velocity.x : 0;
+						position.x = (float) Math.floor(position.x)+HITBOX_WIDTH;
+						if (entity.getType().equals("mushroom") || entity.getType().equals("goomba")) {
+							velocity.x = -velocity.x;
+						}
+						else
+							velocity.x = 0;
 					}
 					if (velocity.x > 0 && (rightEntity != null || rightEntity2 != null) ) {
-						position.x = (float) Math.floor(position.x);
-						velocity.x = (entity.getType().equals("mushroom")) ? -velocity.x : 0;
+						position.x = (float) Math.floor(position.x)+(1-HITBOX_WIDTH);
+						if (entity.getType().equals("mushroom") || entity.getType().equals("goomba")) {
+							velocity.x = -velocity.x;
+						}
+						else
+							velocity.x = 0;
 						
 						if (entity == player) {
 							Entity hitBlock = (rightEntity != null) ? rightEntity : rightEntity2;
@@ -437,6 +493,27 @@ public class Graphics3D implements AppInterface, GuiInterface {
 								position.x = hitBlock.getPosition().x-0.25f;
 								position.y = hitBlock.getPosition().y;
 								position.z = hitBlock.getPosition().z;
+								int points = 100;
+								if (position.y > POLE_5000) {
+									points = 5000;
+								}
+								else if (position.y > POLE_4000) {
+									points = 4000;
+								}else if (position.y > POLE_2000) {
+									points = 2000;
+								}else if (position.y > POLE_800) {
+									points = 800;
+								}else if (position.y > POLE_400) {
+									points = 400;
+								}
+								scene.getFlag("Score").increment(points);
+								Entity score = new Entity(entity.getId()+" score", Integer.toString(points));
+								score.setType("score");
+								scene.setFlag(score.getId() + " time", new Flag(-4000));
+								score.setPosition(position.x+2, 5.f, position.z);
+								score.setRotation(new Quaternionf().rotateX(90));
+								score.setScale(SCORE_MODEL_SCALE);
+								scene.addEntity(score);
 								
 							}
 						}
@@ -446,9 +523,9 @@ public class Graphics3D implements AppInterface, GuiInterface {
 					if (entity.getType().equals("player") && scene.getFlag("Big mario").enabled()) {
 					// Big X Movement
 					entity.setPosition(position.x, position.y, position.z);
-					leftX = (int) Math.floor(entity.getPosition().x);
+					leftX = (int) Math.floor(entity.getPosition().x+(1-HITBOX_WIDTH));
 					bottomY = (int) Math.floor(entity.getPosition().y+1);
-					rightX = (int) Math.ceil(entity.getPosition().x);
+					rightX = (int) Math.ceil(entity.getPosition().x-(1-HITBOX_WIDTH));
 					topY = (int) Math.ceil(entity.getPosition().y+1);
 					
 					// Collision check X
@@ -457,26 +534,14 @@ public class Graphics3D implements AppInterface, GuiInterface {
 					rightEntity = level.getOrDefault(MarioLevelLoader.getBlockId(rightX, topY), null);
 					rightEntity2 = level.getOrDefault(MarioLevelLoader.getBlockId(rightX, bottomY), null);
 					
-					if ( !(entity.getType().equals("player") && scene.getFlag("Player dies").enabled()) ) {
+					if ( !entity.getType().equals("player") || !scene.getFlag("Player dies").enabled() ) {
 					if (velocity.x < 0 && (leftEntity != null || leftEntity2 != null) ) {
-						position.x = (float) Math.floor(position.x)+1.f;
-						velocity.x = (entity.getType().equals("mushroom")) ? -velocity.x : 0;
+						position.x = (float) Math.floor(position.x)+HITBOX_WIDTH;
+						velocity.x = 0;
 					}
 					if (velocity.x > 0 && (rightEntity != null || rightEntity2 != null) ) {
-						position.x = (float) Math.floor(position.x);
-						velocity.x = (entity.getType().equals("mushroom")) ? -velocity.x : 0;
-						
-						if (entity == player) {
-							Entity hitBlock = (rightEntity != null) ? rightEntity : rightEntity2;
-							if (hitBlock.getType().equals(";") || hitBlock.getType().equals("<")) {
-								scene.getFlag("Player auto walk").setValue(true);
-								scene.getFlag("Player flagpole slide").setValue(true);
-								position.x = hitBlock.getPosition().x-0.25f;
-								position.y = hitBlock.getPosition().y;
-								position.z = hitBlock.getPosition().z;
-								
-							}
-						}
+						position.x = (float) Math.floor(position.x)+(1-HITBOX_WIDTH);
+						velocity.x = 0;
 					}
 					}
 					}
@@ -490,6 +555,14 @@ public class Graphics3D implements AppInterface, GuiInterface {
 					rightX = (int) Math.ceil(entity.getPosition().x);
 					topY = (int) Math.ceil(entity.getPosition().y);
 					
+					if (
+							position.x >= centerX-HITBOX_WIDTH/2 &&
+							position.x-HITBOX_WIDTH/2 <= centerX
+							) {
+						leftX = centerX;
+						rightX = centerX;
+					}
+					
 					if (entity.getType().equals("player") && scene.getFlag("Big mario").enabled()) {
 						topY = (int) Math.ceil(entity.getPosition().y+1);
 					}
@@ -499,6 +572,7 @@ public class Graphics3D implements AppInterface, GuiInterface {
 					Entity groundEntity2 = level.getOrDefault(MarioLevelLoader.getBlockId(rightX, bottomY), null);
 					Entity ceilingEntity = level.getOrDefault(MarioLevelLoader.getBlockId(leftX, topY), null);
 					Entity ceilingEntity2 = level.getOrDefault(MarioLevelLoader.getBlockId(rightX, topY), null);
+					
 					boolean onGround = false;
 
 					if ( !(entity.getType().equals("player") && scene.getFlag("Player dies").enabled()) ) {
@@ -508,6 +582,8 @@ public class Graphics3D implements AppInterface, GuiInterface {
 						
 						if (entity == player) {
 							Entity bumpedBlock = (leftX == centerX) ? ceilingEntity : ceilingEntity2;
+							if (bumpedBlock == null && bumpedBlock == ceilingEntity)
+								bumpedBlock = ceilingEntity2;
 							if (bumpedBlock != null && bumpedBlock.getVelocity().y == 0) {
 								if (!bumpedBlock.getType().equals("~") && !bumpedBlock.getType().equals(";") && !bumpedBlock.getType().equals("<")) {
 									Vector3f blockVel = bumpedBlock.getVelocity();
@@ -545,8 +621,8 @@ public class Graphics3D implements AppInterface, GuiInterface {
 								else if (bumpedBlock.getType().equals("5")) {
 									bumpedBlock.setType("~");
 									bumpedBlock.setTextureVariant("resources/models/block/blank.png");
-									Entity powerup = new Entity("mushroom " + position.y, "mushroom");
-									powerup.setPosition(position.x, position.y+POWERUP_OFFSET, position.z);
+									Entity powerup = new Entity("mushroom " + (position.y+(scene.getFlag("Big mario").enabled() ? 1.f : 0.f)), "mushroom");
+									powerup.setPosition(bumpedBlock.getPosition().x, bumpedBlock.getPosition().y+POWERUP_OFFSET, 0);
 									powerup.setType("powerup");
 									powerup.updateModelMatrix();
 									powerup.setVelocity(new Vector3f(MUSHROOM_SPEED, 0, 0));
@@ -562,8 +638,8 @@ public class Graphics3D implements AppInterface, GuiInterface {
 									toBeAdded.add(blank);
 									level.replace(bumpedBlock.getId(), bumpedBlock, blank);
 									level.put(bumpedBlock.getId(), blank);
-									Entity powerup = new Entity("upshroom " + position.y + " " + entity.getId(), "upshroom");
-									powerup.setPosition(position.x, position.y+POWERUP_OFFSET, position.z);
+									Entity powerup = new Entity("upshroom " + (position.y+(scene.getFlag("Big mario").enabled() ? 1.f : 0.f)), "upshroom");
+									powerup.setPosition(bumpedBlock.getPosition().x, bumpedBlock.getPosition().y+POWERUP_OFFSET, 0);
 									powerup.setType("powerup");
 									powerup.updateModelMatrix();
 									powerup.setVelocity(new Vector3f(MUSHROOM_SPEED, 0, 0));
@@ -571,10 +647,12 @@ public class Graphics3D implements AppInterface, GuiInterface {
 								}
 								else if (bumpedBlock.getType().equals("1")) {
 									if (scene.getFlag("Big mario").enabled()) {
+										scene.getFlag("Score").increment(50);
 										level.remove(bumpedBlock.getId());
-										toBeRemoved.add(bumpedBlock);
+										bumpedBlock.setType("d");
 									}
 								}
+								
 							}
 						}
 					}
@@ -590,14 +668,34 @@ public class Graphics3D implements AppInterface, GuiInterface {
 										
 					if (entity == player) {
 						
+						if (scene.getFlag("Invincibility").getValue() > 0) {
+							if (player.hidden())
+								player.show();
+							else
+								player.hide();
+						}
+						else
+							player.show();
 						if (scene.getFlag("Big mario").enabled()) {
-							player.setScaleVector(new Vector3f(1, 2, 1));
+							if (scene.getFlag("Big mario").getValue() < BIG_ANIMATION_TIME) {
+								scene.getFlag("Big mario").time(deltatime);
+								if (Math.ceil(scene.getFlag("Big mario").getValue()/80)%2 == 0) 
+									player.setScale(1);
+								else
+									player.setScaleVector(new Vector3f(1, 2, 1));
+									
+							}
+							else 
+							
+								player.setScaleVector(new Vector3f(1, 2, 1));
 						}
 						else
 							player.setScale(1);
 						
 						
 						scene.getFlag("Player on Ground").setValue(onGround);
+						if (onGround)
+							scene.getFlag("Enemies Bounced").setValue(0);
 						
 						if (entity.getPosition().y < FELL_OFF_A_CLIFF) {
 							die(scene);
@@ -625,8 +723,11 @@ public class Graphics3D implements AppInterface, GuiInterface {
 					if (!entity.getType().equals("player") && !entity.getType().equals("flag")) {
 						Vector3f playerpos = player.getPosition();
 						if (
-								Math.floor(position.x) == Math.floor(playerpos.x) &&
-							    Math.floor(position.y) == Math.floor(playerpos.y)
+								!scene.getFlag("Player dies").enabled() &&
+								position.x >= playerpos.x-HITBOX_WIDTH &&
+								position.x-HITBOX_WIDTH <= playerpos.x &&
+								position.y >= playerpos.y-HITBOX_HEIGHT &&
+								position.y-HITBOX_HEIGHT <= playerpos.y
 						) {
 							// Player Collision
 							
@@ -647,6 +748,7 @@ public class Graphics3D implements AppInterface, GuiInterface {
 								scene.getFlag("Lives").increment(1);
 								toBeRemoved.add(entity);
 								Entity score = new Entity(entity.getId()+" score", "1UP");
+								
 								score.setType("score");
 								scene.setFlag(score.getId() + " time", new Flag(0));
 								score.setPosition(position.x, position.y, position.z);
@@ -654,9 +756,48 @@ public class Graphics3D implements AppInterface, GuiInterface {
 								score.setScale(SCORE_MODEL_SCALE);
 								scene.addEntity(score);
 							}
+							else if (entity.getType().equals("goomba")) {
+								if (player.getVelocity().y >= 0) {
+									fall(scene);
+								}
+								else {
+									int points = 100;
+									points *= scene.getFlag("Enemies Bounced").getValue()+1;
+									scene.getFlag("Enemies Bounced").increment(1);
+									if (points <= 1000) scene.getFlag("Score").increment(points);
+									else scene.getFlag("Lives").increment(1);
+									toBeRemoved.add(entity);
+									Entity score = new Entity(entity.getId()+" score", (points <= 1000) ? Integer.toString(points) : "1UP");
+									score.setType("score");
+									scene.setFlag(score.getId() + " time", new Flag(0));
+									score.setPosition(position.x, position.y, position.z);
+									score.setRotation(new Quaternionf().rotateX(90));
+									score.setScale(SCORE_MODEL_SCALE);
+									scene.addEntity(score);
+									Vector3f playervel = player.getVelocity();
+									playervel.y = ENEMY_BOUNCE;
+									player.setVelocity(playervel);
+								}
+							}
 						}
 					}
 					
+				}
+				else if (entity.getType().equals("d")) {
+					Vector3f entityPos = entity.getPosition();
+					Vector3f entityVel = entity.getVelocity();
+					Quaternionf rotation = entity.getRotation();
+					entityVel.z = BLOCK_ZVEL;
+					entityPos.z -= entityVel.z*deltatime;
+					entityVel.y -= GRAVITY*deltatime;
+					entityPos.y += entityVel.y*deltatime;
+					rotation.rotateLocalX((float) -(deltatime*0.005));
+					entity.setRotation(rotation);
+					entity.setPosition(entityPos.x, entityPos.y, entityPos.z);
+					entity.setVelocity(entityVel);
+					if (entityPos.y < FELL_OFF_A_CLIFF) {
+						toBeRemoved.add(entity);
+					}
 				}
 				else {
 					Vector2i blockPos = MarioLevelLoader.getBlockPos(entity.getId());
