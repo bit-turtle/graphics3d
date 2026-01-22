@@ -1,2 +1,2 @@
-# graphics3d
-3D graphics with LWJGL
+# lwjglmario3d
+3D remake of the original 1-1 level
