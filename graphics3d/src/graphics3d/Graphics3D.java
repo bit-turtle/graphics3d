@@ -67,9 +67,14 @@ public class Graphics3D implements AppInterface, GuiInterface {
     
     private static final float POLE_5000 = 12.f;
     private static final float POLE_4000 = 10.f;
-    private static final float POLE_2000 = 8.f;
-    private static final float POLE_800 = 4.f;
-    private static final float POLE_400 = 2.f;
+    private static final float POLE_2000 = 9.f;
+    private static final float POLE_800 = 8.f;
+    private static final float POLE_400 = 7.f;
+    
+    private static final long SQUISH_TIME = 2000;
+    
+    private static final long STAR_TIME = 8000;
+    private static final float STAR_BOUNCE = 0.018f;
     
     private int nextid = 0;
 	
@@ -131,35 +136,35 @@ public class Graphics3D implements AppInterface, GuiInterface {
 	public void init(Window window, Scene scene, Render render) {
 		scene.setGui(this);		
 		// Mario Block default model
-		Model blockModel = ModelLoader.loadModel("mario block", "resources/models/block/block.obj", scene.getTextureCache());
+		Model blockModel = ModelLoader.loadModel("mario block", "resources/models/block/block.obj", scene.getTextureCache(), false);
 		scene.addModel(blockModel);
-		Model airModel = ModelLoader.loadModel("air block", "resources/models/block/air.obj", scene.getTextureCache());
+		Model airModel = ModelLoader.loadModel("air block", "resources/models/block/air.obj", scene.getTextureCache(), false);
 		scene.addModel(airModel);
-		Model groundModel = ModelLoader.loadModel("ground block", "resources/models/block/ground.obj", scene.getTextureCache());
+		Model groundModel = ModelLoader.loadModel("ground block", "resources/models/block/ground.obj", scene.getTextureCache(), false);
 		scene.addModel(groundModel);
-		Model pipeModel = ModelLoader.loadModel("pipe block", "resources/models/pipe/pipe.obj", scene.getTextureCache());
+		Model pipeModel = ModelLoader.loadModel("pipe block", "resources/models/pipe/pipe.obj", scene.getTextureCache(), false);
 		scene.addModel(pipeModel);
-		Model toppipeModel = ModelLoader.loadModel("pipetop block", "resources/models/pipe/pipetop.obj", scene.getTextureCache());
+		Model toppipeModel = ModelLoader.loadModel("pipetop block", "resources/models/pipe/pipetop.obj", scene.getTextureCache(), false);
 		scene.addModel(toppipeModel);
-		Model poleModel = ModelLoader.loadModel("pole block", "resources/models/flag/pole.obj", scene.getTextureCache());
+		Model poleModel = ModelLoader.loadModel("pole block", "resources/models/flag/pole.obj", scene.getTextureCache(), false);
 		scene.addModel(poleModel);
-		Model toppoleModel = ModelLoader.loadModel("poletop block", "resources/models/flag/poletop.obj", scene.getTextureCache());
+		Model toppoleModel = ModelLoader.loadModel("poletop block", "resources/models/flag/poletop.obj", scene.getTextureCache(), false);
 		scene.addModel(toppoleModel);
-		Model coinModel = ModelLoader.loadModel("coin", "resources/models/coin/coin.obj", scene.getTextureCache());
+		Model coinModel = ModelLoader.loadModel("coin", "resources/models/coin/coin.obj", scene.getTextureCache(), false);
 		scene.addModel(coinModel);
-		Model flagModel = ModelLoader.loadModel("flag", "resources/models/flag/flag.obj", scene.getTextureCache());
+		Model flagModel = ModelLoader.loadModel("flag", "resources/models/flag/flag.obj", scene.getTextureCache(), false);
 		scene.addModel(flagModel);
-		Model mushroomModel = ModelLoader.loadModel("mushroom", "resources/models/mushroom/mushroom.obj", scene.getTextureCache());
+		Model mushroomModel = ModelLoader.loadModel("mushroom", "resources/models/mushroom/mushroom.obj", scene.getTextureCache(), false);
 		scene.addModel(mushroomModel);
-		Model upshroomModel = ModelLoader.loadModel("upshroom", "resources/models/mushroom/upshroom.obj", scene.getTextureCache());
+		Model upshroomModel = ModelLoader.loadModel("upshroom", "resources/models/mushroom/upshroom.obj", scene.getTextureCache(), false);
 		scene.addModel(upshroomModel);
-		Model goombaModel = ModelLoader.loadModel("goomba", "resources/models/mushroom/mushroom.obj", scene.getTextureCache());
+		Model goombaModel = ModelLoader.loadModel("goomba", "resources/models/flat/flat.obj", scene.getTextureCache(), false);
 		scene.addModel(goombaModel);
-		Model starModel = ModelLoader.loadModel("star", "resources/models/block/block.obj", scene.getTextureCache());
+		Model starModel = ModelLoader.loadModel("star", "resources/models/flat/flat.obj", scene.getTextureCache(), false);
 		scene.addModel(starModel);
 		// Load Score Models
 		for (String modelId : score_models) {
-			Model scoreModel = ModelLoader.loadModel(modelId, "resources/models/score/" + modelId + ".obj", scene.getTextureCache());
+			Model scoreModel = ModelLoader.loadModel(modelId, "resources/models/score/" + modelId + ".obj", scene.getTextureCache(), false);
 			scene.addModel(scoreModel);
 		}
 		// Load Texture Variants
@@ -179,6 +184,12 @@ public class Graphics3D implements AppInterface, GuiInterface {
 		model_variants[12] = toppoleModel.getId();
 		// Load enemy texture variants
 		enemy_texture_variants = new HashMap<String, String>();
+		enemy_texture_variants.put("goomba", "resources/models/flat/goomba.png");
+		enemy_texture_variants.forEach((String _, String texture) -> {
+			scene.getTextureCache()
+			.createTexture(texture);
+		});
+		
 		
 		this.level = MarioLevelLoader.loadLevel(scene, "resources/data/mariolevel.txt", texture_variants, model_variants, enemy_texture_variants);		
 		
@@ -216,6 +227,8 @@ public class Graphics3D implements AppInterface, GuiInterface {
         scene.setFlag("Fire mario", new Flag(false));
         scene.setFlag("Invincibility", new Flag(0));
         scene.setFlag("Level reset", new Flag(false));
+        scene.setFlag("Time score", new Flag(false));
+        scene.setFlag("Mario star", new Flag(0));
         scene.setGui(new GameGui(scene, window));
         
         player = new Entity("player entity", toppoleModel.getId());
@@ -229,19 +242,24 @@ public class Graphics3D implements AppInterface, GuiInterface {
         scene.setSky(skyBox);
 	}
 	
-	public void die(Scene scene) {
+	public void die(Scene scene, Window window) {
 		scene.getFlag("Lives").increment(-1);
         player.setPosition(RESPAWN_LOCATION.x, RESPAWN_LOCATION.y, RESPAWN_LOCATION.z);
         player.setVelocity(new Vector3f());
         cameraPosition.x = RESPAWN_LOCATION.x;
         scene.getFlag("Timer").setValue(0);
         scene.getFlag("Time").setValue(400);
+        scene.getFlag("Time score").setValue(false);
         scene.getFlag("Big mario").setValue(false);
         scene.getFlag("Fire mario").setValue(false);
         scene.getFlag("Level reset").setValue(true);
+		if (scene.getFlag("Player auto walk").enabled()) {
+			scene.pause();
+			scene.setGui(new WinGui(scene, window));
+		}
 	} 
 	public void fall(Scene scene) {
-		if (scene.getFlag("Big mario").enabled()) {
+		if (scene.getFlag("Big mario").enabled() && !scene.getFlag("Player auto walk").enabled()) {
 			scene.getFlag("Big mario").setValue(false);
 			scene.getFlag("Fire mario").setValue(false);
 			scene.getFlag("Invincibility").setValue((int)INVINCIBLE);
@@ -336,14 +354,27 @@ public class Graphics3D implements AppInterface, GuiInterface {
 	
 	@Override
 	public void update(Window window, Scene scene, long deltatime) {
+		scene.getFlag("Mario star").time(-deltatime);
+		if (scene.getFlag("Mario star").getValue() < 0) {
+			scene.getFlag("Mario star").setValue(0);
+			player.setHue(0);
+		}
+		else
+			player.setHue((int)(player.getHue()+deltatime));
 		SceneLights lights = scene.getLights();
 		lights.getPointLights().clear();
 		lights.getSpotLights().clear();
 		ArrayList<Entity> toBeRemoved = new ArrayList<Entity>();
 		ArrayList<Entity> toBeAdded = new ArrayList<Entity>();
-		if (!scene.getFlag("Player auto walk").enabled()) scene.getFlag("Timer").time(deltatime);
+		if (!scene.getFlag("Player auto walk").enabled()) {
+			scene.getFlag("Timer").time(deltatime);
+			scene.getFlag("Time").setValue((int)(TIME-scene.getFlag("Timer").getValue()*TIME_SCALE/1000));
+		}
+		else if (scene.getFlag("Time score").enabled() && scene.getFlag("Time").getValue() > 0) {
+			scene.getFlag("Time").increment(-1);
+			scene.getFlag("Score").increment(10);
+		}
 		if (scene.getFlag("Invincibility").getValue() > 0) scene.getFlag("Invincibility").increment((int)-deltatime);
-		scene.getFlag("Time").setValue((int)(TIME-scene.getFlag("Timer").getValue()*TIME_SCALE/1000));
 		scene.getModelMap().forEach((String _, Model model) -> {
 			model.getEntitiesList().forEach((Entity entity) -> {
 				// Spin
@@ -433,6 +464,14 @@ public class Graphics3D implements AppInterface, GuiInterface {
 						entity.setType(id[0]);
 					}
 				}
+				else if (entity.getType().equals("squished")) {
+					scene.getFlag(entity.getId()+" time").time(deltatime);
+					long time = scene.getFlag(entity.getId()+" time").getValue();
+					if (time>SQUISH_TIME)
+						toBeRemoved.add(entity);
+					float squish = 0.25f;
+					entity.setScaleVector(new Vector3f(1, squish, 1));
+				}
 				else if (entity.getType().length() > 1) {
 					
 					
@@ -443,6 +482,7 @@ public class Graphics3D implements AppInterface, GuiInterface {
 						if (velocity.x == 0 && player.getPosition().x+ENEMY_ACTIVATION_DIST >= position.x) {
 							velocity.x = -GOOMBA_SPEED;
 						}
+						entity.flipTextureX((scene.getFlag("Time").getValue()%2 == 0));
 					}
 					// Physics
 					velocity.y -= GRAVITY*deltatime;
@@ -471,7 +511,7 @@ public class Graphics3D implements AppInterface, GuiInterface {
 					if ( !(entity.getType().equals("player") ) || !scene.getFlag("Player dies").enabled() ) {
 					if (velocity.x < 0 && (leftEntity != null || leftEntity2 != null) ) {
 						position.x = (float) Math.floor(position.x)+HITBOX_WIDTH;
-						if (entity.getType().equals("mushroom") || entity.getType().equals("goomba")) {
+						if (entity.getType().equals("mushroom") || entity.getType().equals("goomba") || entity.getType().equals("star")) {
 							velocity.x = -velocity.x;
 						}
 						else
@@ -479,7 +519,7 @@ public class Graphics3D implements AppInterface, GuiInterface {
 					}
 					if (velocity.x > 0 && (rightEntity != null || rightEntity2 != null) ) {
 						position.x = (float) Math.floor(position.x)+(1-HITBOX_WIDTH);
-						if (entity.getType().equals("mushroom") || entity.getType().equals("goomba")) {
+						if (entity.getType().equals("mushroom") || entity.getType().equals("goomba") || entity.getType().equals("star")) {
 							velocity.x = -velocity.x;
 						}
 						else
@@ -550,18 +590,18 @@ public class Graphics3D implements AppInterface, GuiInterface {
 					position.y += velocity.y*deltatime;
 					entity.setPosition(position.x, position.y, position.z);
 					int centerX = (int) Math.round(entity.getPosition().x);
-					leftX = (int) Math.floor(entity.getPosition().x);
 					bottomY = (int) Math.floor(entity.getPosition().y);
-					rightX = (int) Math.ceil(entity.getPosition().x);
 					topY = (int) Math.ceil(entity.getPosition().y);
+					leftX = (int) Math.floor(entity.getPosition().x+(1-HITBOX_WIDTH));
+					rightX = (int) Math.ceil(entity.getPosition().x-(1-HITBOX_WIDTH));
 					
-					if (
-							position.x >= centerX-HITBOX_WIDTH/2 &&
-							position.x-HITBOX_WIDTH/2 <= centerX
-							) {
+					if (position.x >= centerX-(1-HITBOX_WIDTH)) {
 						leftX = centerX;
+					}
+					if (position.x-(1-HITBOX_WIDTH) <= centerX) {
 						rightX = centerX;
 					}
+					
 					
 					if (entity.getType().equals("player") && scene.getFlag("Big mario").enabled()) {
 						topY = (int) Math.ceil(entity.getPosition().y+1);
@@ -627,6 +667,15 @@ public class Graphics3D implements AppInterface, GuiInterface {
 									powerup.updateModelMatrix();
 									powerup.setVelocity(new Vector3f(MUSHROOM_SPEED, 0, 0));
 									scene.addEntity(powerup);
+								} else if (bumpedBlock.getType().equals("6")) {
+									bumpedBlock.setType("~");
+									bumpedBlock.setTextureVariant("resources/models/block/blank.png");
+									Entity powerup = new Entity("star " + (position.y+(scene.getFlag("Big mario").enabled() ? 1.f : 0.f)), "star");
+									powerup.setPosition(bumpedBlock.getPosition().x, bumpedBlock.getPosition().y+POWERUP_OFFSET, 0);
+									powerup.setType("powerup");
+									powerup.updateModelMatrix();
+									powerup.setVelocity(new Vector3f(MUSHROOM_SPEED, 0, 0));
+									scene.addEntity(powerup);
 								} 
 								else if (bumpedBlock.getType().equals("7")) {
 									toBeRemoved.add(bumpedBlock);
@@ -660,6 +709,9 @@ public class Graphics3D implements AppInterface, GuiInterface {
 						position.y = (float) Math.floor(position.y)+1.f;
 						velocity.y = 0;
 						onGround = true;
+						if (entity.getType().equals("star")) {
+							velocity.y = STAR_BOUNCE;
+						}
 					}
 					}
 					
@@ -694,11 +746,15 @@ public class Graphics3D implements AppInterface, GuiInterface {
 						
 						
 						scene.getFlag("Player on Ground").setValue(onGround);
-						if (onGround)
+						if (onGround) {
 							scene.getFlag("Enemies Bounced").setValue(0);
 						
+							if (scene.getFlag("Player auto walk").enabled())
+								scene.getFlag("Time score").setValue(true);
+						}
+						
 						if (entity.getPosition().y < FELL_OFF_A_CLIFF) {
-							die(scene);
+							die(scene, window);
 							scene.getFlag("Player dies").setValue(false);
 						}
 						
@@ -735,7 +791,10 @@ public class Graphics3D implements AppInterface, GuiInterface {
 							if (entity.getType().equals("mushroom")) {
 								scene.getFlag("Score").increment(1000);
 								toBeRemoved.add(entity);
-								scene.getFlag("Big mario").setValue(true);
+								if (scene.getFlag("Big mario").enabled())
+									scene.getFlag("Big mario").setValue(1000000000);
+								else
+									scene.getFlag("Big mario").setValue(true);
 								Entity score = new Entity(entity.getId()+" score", "1000");
 								score.setType("score");
 								scene.setFlag(score.getId() + " time", new Flag(0));
@@ -756,8 +815,34 @@ public class Graphics3D implements AppInterface, GuiInterface {
 								score.setScale(SCORE_MODEL_SCALE);
 								scene.addEntity(score);
 							}
+							else if (entity.getType().equals("star")) {
+								scene.getFlag("Lives").increment(1);
+								toBeRemoved.add(entity);
+								scene.getFlag("Mario star").setValue((int)STAR_TIME);
+								Entity score = new Entity(entity.getId()+" score", "1000");
+								score.setType("score");
+								scene.setFlag(score.getId() + " time", new Flag(0));
+								score.setPosition(position.x, position.y, position.z);
+								score.setRotation(new Quaternionf().rotateX(90));
+								score.setScale(SCORE_MODEL_SCALE);
+								scene.addEntity(score);
+							}
 							else if (entity.getType().equals("goomba")) {
-								if (player.getVelocity().y >= 0) {
+								if (scene.getFlag("Mario star").getValue()>0) {
+									int points = 100;
+									if (points <= 1000) scene.getFlag("Score").increment(points);
+									else scene.getFlag("Lives").increment(1);
+									entity.setType("squished");
+									scene.setFlag(entity.getId()+" time", new Flag(0));
+									Entity score = new Entity(entity.getId()+" score", (points <= 1000) ? Integer.toString(points) : "1UP");
+									score.setType("score");
+									scene.setFlag(score.getId() + " time", new Flag(0));
+									score.setPosition(position.x, position.y, position.z);
+									score.setRotation(new Quaternionf().rotateX(90));
+									score.setScale(SCORE_MODEL_SCALE);
+									scene.addEntity(score);
+								}
+								else if (player.getVelocity().y >= 0) {
 									fall(scene);
 								}
 								else {
@@ -766,7 +851,8 @@ public class Graphics3D implements AppInterface, GuiInterface {
 									scene.getFlag("Enemies Bounced").increment(1);
 									if (points <= 1000) scene.getFlag("Score").increment(points);
 									else scene.getFlag("Lives").increment(1);
-									toBeRemoved.add(entity);
+									entity.setType("squished");
+									scene.setFlag(entity.getId()+" time", new Flag(0));
 									Entity score = new Entity(entity.getId()+" score", (points <= 1000) ? Integer.toString(points) : "1UP");
 									score.setType("score");
 									scene.setFlag(score.getId() + " time", new Flag(0));

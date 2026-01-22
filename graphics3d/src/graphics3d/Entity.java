@@ -15,6 +15,9 @@ public class Entity {
     private float cullingradius = 2.f;
     private String type;
     private Vector3f velocity;
+    private boolean flipTexture[] = {false, false};
+    private AnimationData animationData;
+    private int hue;
 
     public Entity(String id, String modelId) {
         this.id = id;
@@ -25,6 +28,8 @@ public class Entity {
         scale = new Vector3f(1,1,1);
         hidden = false;
         velocity = new Vector3f();
+        flipTexture[0] = false;
+        flipTexture[1] = false;
     }
 
     public String getId() {
@@ -134,7 +139,29 @@ public class Entity {
     	this.type = type;
     }
     
+    public void flipTextureX(boolean flipx) {
+    	flipTexture[0] = flipx;
+    }
+    public void flipTextureY(boolean flipy) {
+    	flipTexture[1] = flipy;
+    }
+    public boolean[] getFlip() {
+    	return flipTexture;
+    }
+    
     public String getType() {
     	return this.type;
+    }
+    public AnimationData getAnimationData() {
+        return animationData;
+    }
+    public void setAnimationData(AnimationData animationData) {
+        this.animationData = animationData;
+    }
+    public void setHue(int hue) {
+    	this.hue = hue;
+    }
+    public int getHue() {
+    	return hue;
     }
 }

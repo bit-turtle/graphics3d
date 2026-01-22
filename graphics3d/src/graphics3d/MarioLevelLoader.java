@@ -51,6 +51,7 @@ public class MarioLevelLoader {
 						case 'g':
 							enemy = new Entity(String.format("enemy %d", id++), "goomba");
 							enemy.setType("goomba");
+							enemy.setTextureVariant(enemyTextures.get("goomba"));
 							break;
 					}
 					

@@ -13,11 +13,19 @@ import org.lwjgl.system.MemoryUtil;
 
 public class Mesh {
 
+	public static final int MAX_WEIGHTS = 4;
+	
     private int numVertices;
     private int vaoId;
     private List<Integer> vboIdList;
 
-    public Mesh(float[] positions, float[] normals, float[] textCoords, int[] indices) {
+    public Mesh(float[] positions, float[] normals, float[] tangents, float[] bitangents, float[] textCoords, int[] indices) {
+        this(positions, normals, tangents, bitangents, textCoords, indices,
+                new int[Mesh.MAX_WEIGHTS * positions.length / 3], new float[Mesh.MAX_WEIGHTS * positions.length / 3]);
+    }
+    
+    public Mesh(float[] positions, float[] normals, float[] tangents, float[] bitangents, float[] textCoords, int[] indices,
+            int[] boneIndices, float[] weights) {
         numVertices = indices.length;
         vboIdList = new ArrayList<>();
 
@@ -62,6 +70,26 @@ public class Mesh {
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboId);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesBuffer, GL_STATIC_DRAW);
 
+     // Bone weights
+        vboId = glGenBuffers();
+        vboIdList.add(vboId);
+        FloatBuffer weightsBuffer = MemoryUtil.memCallocFloat(weights.length);
+        weightsBuffer.put(weights).flip();
+        glBindBuffer(GL_ARRAY_BUFFER, vboId);
+        glBufferData(GL_ARRAY_BUFFER, weightsBuffer, GL_STATIC_DRAW);
+        glEnableVertexAttribArray(5);
+        glVertexAttribPointer(5, 4, GL_FLOAT, false, 0, 0);
+
+        // Bone indices
+        vboId = glGenBuffers();
+        vboIdList.add(vboId);
+        IntBuffer boneIndicesBuffer = MemoryUtil.memCallocInt(boneIndices.length);
+        boneIndicesBuffer.put(boneIndices).flip();
+        glBindBuffer(GL_ARRAY_BUFFER, vboId);
+        glBufferData(GL_ARRAY_BUFFER, boneIndicesBuffer, GL_STATIC_DRAW);
+        glEnableVertexAttribArray(6);
+        glVertexAttribPointer(6, 4, GL_FLOAT, false, 0, 0);
+        
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindVertexArray(0);
 
@@ -69,6 +97,9 @@ public class Mesh {
         MemoryUtil.memFree(normalsBuffer);
         MemoryUtil.memFree(textCoordsBuffer);
         MemoryUtil.memFree(indicesBuffer);
+
+        MemoryUtil.memFree(weightsBuffer);
+        MemoryUtil.memFree(boneIndicesBuffer);
     }
 
     public void cleanup() {

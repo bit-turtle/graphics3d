@@ -53,6 +53,8 @@ uniform AmbientLight ambientLight;
 uniform PointLight pointLights[MAX_POINT_LIGHTS];
 uniform SpotLight spotLights[MAX_SPOT_LIGHTS];
 uniform DirectionalLight directionalLight;
+uniform bvec2 theFlip;
+uniform int hue;
 
 vec4 calcAmbient(AmbientLight ambientLight, vec4 ambient) {
     return vec4(ambientLight.factor * ambientLight.color, 1) * ambient;
@@ -109,8 +111,26 @@ vec4 calcDirectionalLight(vec4 diffuse, vec4 specular, DirectionalLight light, v
     return calcLightColor(diffuse, specular, light.color, light.intensity, position, normalize(light.direction), normal);
 }
 
+vec3 hsv2rgb(vec3 c)
+{
+    vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+    vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+    return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
+
 void main() {
-    vec4 text_color = texture(txtSampler, outTextCoord);
+	vec2 texCoord = outTextCoord;
+	if (theFlip.x) {
+		texCoord.x = 1 - texCoord.x;
+	}
+	if (theFlip.y) {
+		texCoord.y = 1 - texCoord.y;
+	}
+    vec4 text_color = texture(txtSampler, texCoord);
+    if(text_color.a == 0) // Transparency
+    {
+        discard; 
+    }
     vec4 ambient = calcAmbient(ambientLight, text_color + material.ambient);
     vec4 diffuse = text_color + material.diffuse;
     vec4 specular = text_color + material.specular;
@@ -128,5 +148,9 @@ void main() {
             diffuseSpecularComp += calcSpotLight(diffuse, specular, spotLights[i], outPosition, outNormal);
         }
     }
-    fragColor = ambient + diffuseSpecularComp;
+    vec4 hsv = vec4(0,0,0,0);
+    if (hue > 0) {
+    	hsv = vec4(hsv2rgb(vec3(hue, 1, 1)), 1.0);
+    }
+    fragColor = ambient + diffuseSpecularComp + hsv;
 }

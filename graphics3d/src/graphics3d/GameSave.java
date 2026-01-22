@@ -22,7 +22,15 @@ public class GameSave extends Thread {
 	public void run() {
 		for (float i = 0.f; i <= 1.f; i+=0.01f) {
 			percent = i;
-			activity = "Cube Spins: " + (scene.getFlag("Cube Spins").getValue());
+			if (i <= 0.25)
+			activity = "Score: " + (scene.getFlag("Score").getValue());
+			else if (i <= 0.5)
+				activity = "Lives: " + (scene.getFlag("Lives").getValue());
+			else if (i <= 0.75)
+				activity = "Coins: " + (scene.getFlag("Coins").getValue());
+			else 
+				activity = "Complete!";
+
 			try {
 				Thread.sleep(10);
 			} catch (InterruptedException e) {}

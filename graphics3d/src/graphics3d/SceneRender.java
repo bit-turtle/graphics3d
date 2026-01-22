@@ -63,6 +63,11 @@ public class SceneRender {
         uniforms.createUniform("directionalLight.color");
         uniforms.createUniform("directionalLight.direction");
         uniforms.createUniform("directionalLight.intensity");
+        
+        uniforms.createUniform("theFlip");
+        uniforms.createUniform("hue");
+        
+
 	}
 	
 	public void cleanup() {
@@ -208,6 +213,12 @@ public class SceneRender {
                         uniforms.setUniform("material.reflectance", material.getReflectance());
                         uniforms.setUniform("modelMatrix", entity.getModelMatrix());
                         uniforms.setUniform("material.diffuse", material.getDiffuseColor());
+                        
+                        uniforms.setUniform("theFlip", entity.getFlip());
+                        
+                        uniforms.setUniform("hue", entity.getHue());
+                        
+                        
                         glDrawElements(GL_TRIANGLES, mesh.getNumVertices(), GL_UNSIGNED_INT, 0);
                         
                     }
